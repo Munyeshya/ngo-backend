@@ -13,6 +13,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "phone_number",
+            "profile_image",
             "role",
             "password",
         ]
@@ -49,6 +50,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "phone_number",
+            "profile_image",
             "role",
             "is_verified",
             "is_active",
@@ -73,6 +75,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "username": self.user.username,
             "email": self.user.email,
             "phone_number": self.user.phone_number,
+            "profile_image": self.user.profile_image.url if self.user.profile_image else None,
             "role": self.user.role,
             "is_verified": self.user.is_verified,
         }
