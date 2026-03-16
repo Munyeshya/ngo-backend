@@ -7,12 +7,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .permissions import IsAdminUserRole
+from core.views import success_response
+from rest_framework import generics, permissions, status
 
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        return success_response(
+            message="User registered successfully.",
+            data=serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
 
 
 class ProfileView(generics.RetrieveAPIView):
@@ -21,6 +34,13 @@ class ProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return success_response(
+            message="User profile fetched successfully.",
+            data=serializer.data,
+        )
 
 from .serializers import (
     UserRegisterSerializer,
@@ -48,9 +68,10 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-            return Response(
-                {"success": True, "message": "Logged out successfully."},
-                status=status.HTTP_200_OK
+            return success_response(
+                message="Logged out successfully.",
+                data={},
+                status_code=status.HTTP_200_OK,
             )
         except Exception:
             return Response(
@@ -62,7 +83,11 @@ class AdminOnlyView(APIView):
     permission_classes = [IsAdminUserRole]
 
     def get(self, request):
-        return Response({
-            "success": True,
-            "message": "Welcome admin, you have access to this endpoint."
-        })
+        return success_response(
+            message="Welcome admin, you have access to this endpoint.",
+            data={
+                "user_id": request.user.id,
+                "username": request.user.username,
+                "role": request.user.role,
+            },
+        )
