@@ -20,6 +20,20 @@ class PartnerListCreateView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return success_response(
+                message="Partners fetched successfully.",
+                data={
+                    "count": self.paginator.page.paginator.count,
+                    "next": self.paginator.get_next_link(),
+                    "previous": self.paginator.get_previous_link(),
+                    "results": serializer.data,
+                },
+            )
+
         serializer = self.get_serializer(queryset, many=True)
         return success_response(
             message="Partners fetched successfully.",
@@ -91,6 +105,20 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return success_response(
+                message="Projects fetched successfully.",
+                data={
+                    "count": self.paginator.page.paginator.count,
+                    "next": self.paginator.get_next_link(),
+                    "previous": self.paginator.get_previous_link(),
+                    "results": serializer.data,
+                },
+            )
+
         serializer = self.get_serializer(queryset, many=True)
         return success_response(
             message="Projects fetched successfully.",
