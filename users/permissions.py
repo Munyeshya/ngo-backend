@@ -26,12 +26,3 @@ class IsDonorUserRole(BasePermission):
             and request.user.is_authenticated
             and request.user.role == "donor"
         )
-
-
-class IsVolunteerUserRole(BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == "volunteer"
-        )

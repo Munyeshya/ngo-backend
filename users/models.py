@@ -6,13 +6,11 @@ class User(AbstractUser):
     ROLE_ADMIN = "admin"
     ROLE_STAFF = "staff"
     ROLE_DONOR = "donor"
-    ROLE_VOLUNTEER = "volunteer"
 
     ROLE_CHOICES = [
         (ROLE_ADMIN, "Admin"),
         (ROLE_STAFF, "Staff"),
         (ROLE_DONOR, "Donor"),
-        (ROLE_VOLUNTEER, "Volunteer"),
     ]
 
     email = models.EmailField(unique=True)
