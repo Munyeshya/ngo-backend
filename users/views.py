@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions
 from .models import User
-from .serializers import UserRegisterSerializer, UserProfileSerializer
+from .serializers import *
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from rest_framework.response import Response
@@ -90,4 +90,42 @@ class AdminOnlyView(APIView):
                 "username": request.user.username,
                 "role": request.user.role,
             },
+        )
+
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all().order_by("-id")
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAdminUserRole]
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return success_response(
+            message="Users fetched successfully.",
+            data=serializer.data,
+        )
+
+
+class UserDetailView(generics.RetrieveUpdateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [IsAdminUserRole]
+
+    def get_serializer_class(self):
+        if self.request.method == "PUT":
+            return AdminUserUpdateSerializer
+        return UserProfileSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return success_response(
+            message="User fetched successfully.",
+            data=serializer.data,
+        )
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return success_response(
+            message="User updated successfully.",
+            data=serializer.data,
         )

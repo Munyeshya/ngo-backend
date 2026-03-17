@@ -81,3 +81,35 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         }
 
         return data
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "email",
+            "phone_number",
+            "profile_image",
+            "role",
+            "is_verified",
+            "is_active",
+            "first_name",
+            "last_name",
+        ]
+
+    def validate_email(self, value):
+        user_id = self.instance.id if self.instance else None
+        if User.objects.exclude(id=user_id).filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate_username(self, value):
+        user_id = self.instance.id if self.instance else None
+        if User.objects.exclude(id=user_id).filter(username=value).exists():
+            raise serializers.ValidationError("A user with this username already exists.")
+        return value
+
+    def validate_role(self, value):
+        valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
+        if value not in valid_roles:
+            raise serializers.ValidationError("Invalid role selected.")
+        return value
