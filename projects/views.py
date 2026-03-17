@@ -8,14 +8,18 @@ from .serializers import PartnerSerializer, ProjectSerializer
 class PartnerListCreateView(generics.ListCreateAPIView):
     queryset = Partner.objects.all()
     serializer_class = PartnerSerializer
+    filterset_fields = ["is_active"]
+    search_fields = ["name", "description", "website"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
 
     def get_permissions(self):
         if self.request.method == "POST":
             return [IsAdminUserRole()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return success_response(
             message="Partners fetched successfully.",
@@ -40,7 +44,7 @@ class PartnerDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method in ["PUT", "PATCH", "DELETE"]:
             return [IsAdminUserRole()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_object())
@@ -72,17 +76,21 @@ class PartnerDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ProjectListCreateView(generics.ListCreateAPIView):
     queryset = Project.objects.select_related("created_by").prefetch_related("partners")
     serializer_class = ProjectSerializer
+    filterset_fields = ["status", "location", "partners"]
+    search_fields = ["title", "description", "location"]
+    ordering_fields = ["created_at", "start_date", "budget", "title"]
+    ordering = ["-created_at"]
 
     def get_permissions(self):
         if self.request.method == "POST":
             return [IsAdminUserRole()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return success_response(
             message="Projects fetched successfully.",
@@ -107,7 +115,7 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method in ["PUT", "PATCH", "DELETE"]:
             return [IsAdminUserRole()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def perform_update(self, serializer):
         serializer.save()
