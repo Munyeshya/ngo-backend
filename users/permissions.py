@@ -65,3 +65,16 @@ class IsAdminOrStaffBeneficiaryProjectOwner(BasePermission):
             return obj.project.created_by_id == request.user.id
 
         return False
+
+class IsAdminOrStaffBeneficiaryImageProjectOwner(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.role == "admin":
+            return True
+
+        if request.user.role == "staff":
+            return obj.beneficiary.project.created_by_id == request.user.id
+
+        return False

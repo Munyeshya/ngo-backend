@@ -1,13 +1,9 @@
 from rest_framework import generics, permissions, status
 from core.views import success_response
-from users.permissions import IsAdminUserRole, IsAdminOrStaffBeneficiaryProjectOwner
+from users.permissions import IsAdminUserRole, IsAdminOrStaffBeneficiaryProjectOwner,IsAdminOrStaffBeneficiaryImageProjectOwner
 from .models import Beneficiary, BeneficiaryImage
 from projects.models import Project
-from .serializers import (
-    BeneficiarySerializer,
-    BeneficiaryImageSerializer,
-    BeneficiaryImageCreateSerializer,
-)
+from .serializers import *
 
 
 class BeneficiaryListCreateView(generics.ListCreateAPIView):
@@ -114,11 +110,39 @@ class BeneficiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class BeneficiaryImageCreateView(generics.CreateAPIView):
-    queryset = BeneficiaryImage.objects.select_related("beneficiary")
+    queryset = BeneficiaryImage.objects.select_related("beneficiary", "beneficiary__project")
     serializer_class = BeneficiaryImageCreateSerializer
-    permission_classes = [IsAdminUserRole]
+    permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        if request.user.role not in ["admin", "staff"]:
+            return success_response(
+                message="You do not have permission to upload a beneficiary image.",
+                data={},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        beneficiary_id = request.data.get("beneficiary")
+        if not beneficiary_id:
+            return success_response(
+                message="Beneficiary field is required.",
+                data={},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.user.role == "staff":
+            owns_beneficiary_project = Beneficiary.objects.filter(
+                id=beneficiary_id,
+                project__created_by=request.user
+            ).exists()
+
+            if not owns_beneficiary_project:
+                return success_response(
+                    message="You can only upload images for beneficiaries under your own projects.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -132,12 +156,16 @@ class BeneficiaryImageCreateView(generics.CreateAPIView):
 
 
 class BeneficiaryImageDeleteView(generics.DestroyAPIView):
-    queryset = BeneficiaryImage.objects.select_related("beneficiary")
+    queryset = BeneficiaryImage.objects.select_related("beneficiary", "beneficiary__project")
     serializer_class = BeneficiaryImageSerializer
-    permission_classes = [IsAdminUserRole]
+
+    def get_permissions(self):
+        return [permissions.IsAuthenticated(), IsAdminOrStaffBeneficiaryImageProjectOwner()]
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        self.check_object_permissions(request, instance)
+
         self.perform_destroy(instance)
         return success_response(
             message="Beneficiary image deleted successfully.",
