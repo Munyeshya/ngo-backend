@@ -1,7 +1,8 @@
 from rest_framework import generics, permissions, status
 from core.views import success_response
-from users.permissions import IsAdminUserRole
+from users.permissions import IsAdminUserRole, IsAdminOrStaffBeneficiaryProjectOwner
 from .models import Beneficiary, BeneficiaryImage
+from projects.models import Project
 from .serializers import (
     BeneficiarySerializer,
     BeneficiaryImageSerializer,
@@ -19,8 +20,35 @@ class BeneficiaryListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAdminUserRole()]
+            return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ["admin", "staff"]:
+            return success_response(
+                message="You do not have permission to create a beneficiary.",
+                data={},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        project_id = request.data.get("project")
+        if request.user.role == "staff":
+            owns_project = Project.objects.filter(id=project_id, created_by=request.user).exists()
+            if not owns_project:
+                return success_response(
+                    message="You can only add beneficiaries to your own projects.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return success_response(
+            message="Beneficiary created successfully.",
+            data=serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -44,16 +72,6 @@ class BeneficiaryListCreateView(generics.ListCreateAPIView):
             data=serializer.data,
         )
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return success_response(
-            message="Beneficiary created successfully.",
-            data=serializer.data,
-            status_code=status.HTTP_201_CREATED,
-        )
-
 
 class BeneficiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Beneficiary.objects.select_related("project").prefetch_related("images")
@@ -61,7 +79,7 @@ class BeneficiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method in ["PUT", "PATCH", "DELETE"]:
-            return [IsAdminUserRole()]
+            return [permissions.IsAuthenticated(), IsAdminOrStaffBeneficiaryProjectOwner()]
         return [permissions.AllowAny()]
 
     def retrieve(self, request, *args, **kwargs):
@@ -72,8 +90,10 @@ class BeneficiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
         instance = self.get_object()
+        self.check_object_permissions(request, instance)
+
+        partial = kwargs.pop("partial", False)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -84,6 +104,8 @@ class BeneficiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        self.check_object_permissions(request, instance)
+
         self.perform_destroy(instance)
         return success_response(
             message="Beneficiary deleted successfully.",

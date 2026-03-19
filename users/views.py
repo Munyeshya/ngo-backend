@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .permissions import IsAdminUserRole
+from .permissions import IsAdminUserRole, IsAdminOrSelf
 from core.views import success_response
 from rest_framework import generics, permissions, status
 
@@ -107,7 +107,11 @@ class UserListView(generics.ListAPIView):
 
 class UserDetailView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
-    permission_classes = [IsAdminUserRole]
+
+    def get_permissions(self):
+        if self.request.method == "PUT":
+            return [permissions.IsAuthenticated(), IsAdminOrSelf()]
+        return [IsAdminUserRole()]
 
     def get_serializer_class(self):
         if self.request.method == "PUT":
@@ -122,7 +126,10 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
         )
 
     def update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(self.get_object(), data=request.data)
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+
+        serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return success_response(
