@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions, status
 from core.views import success_response
-from users.permissions import IsAdminUserRole, IsStaffUserRole, IsAdminOrStaffProjectOwner
-from .models import Partner, Project
-from .serializers import PartnerSerializer, ProjectSerializer
+from users.permissions import IsAdminUserRole, IsStaffUserRole, IsAdminOrStaffProjectOwner,IsAdminOrStaffProjectUpdateOwner,IsAdminOrStaffProjectUpdateImageOwner
+from .models import Partner, Project, ProjectUpdate, ProjectUpdateImage
+from .serializers import PartnerSerializer, ProjectSerializer,ProjectUpdateSerializer,ProjectUpdateImageSerializer,ProjectUpdateImageCreateSerializer
 
 
 class PartnerListCreateView(generics.ListCreateAPIView):
@@ -182,5 +182,173 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
         self.perform_destroy(instance)
         return success_response(
             message="Project deleted successfully.",
+            data={},
+        )
+
+class ProjectUpdateListCreateView(generics.ListCreateAPIView):
+    queryset = ProjectUpdate.objects.select_related("project", "created_by", "project__created_by").prefetch_related("images")
+    serializer_class = ProjectUpdateSerializer
+    filterset_fields = ["project"]
+    search_fields = ["title", "description", "project__title"]
+    ordering_fields = ["created_at", "title"]
+    ordering = ["-created_at"]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return success_response(
+                message="Project updates fetched successfully.",
+                data={
+                    "count": self.paginator.page.paginator.count,
+                    "next": self.paginator.get_next_link(),
+                    "previous": self.paginator.get_previous_link(),
+                    "results": serializer.data,
+                },
+            )
+
+        serializer = self.get_serializer(queryset, many=True)
+        return success_response(
+            message="Project updates fetched successfully.",
+            data=serializer.data,
+        )
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ["admin", "staff"]:
+            return success_response(
+                message="You do not have permission to create a project update.",
+                data={},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        project_id = request.data.get("project")
+        if request.user.role == "staff":
+            owns_project = Project.objects.filter(id=project_id, created_by=request.user).exists()
+            if not owns_project:
+                return success_response(
+                    message="You can only create updates for your own projects.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(created_by=request.user)
+
+        return success_response(
+            message="Project update created successfully.",
+            data=serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class ProjectUpdateDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ProjectUpdate.objects.select_related("project", "created_by", "project__created_by").prefetch_related("images")
+    serializer_class = ProjectUpdateSerializer
+
+    def get_permissions(self):
+        if self.request.method in ["PUT", "PATCH", "DELETE"]:
+            return [permissions.IsAuthenticated(), IsAdminOrStaffProjectUpdateOwner()]
+        return [permissions.AllowAny()]
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return success_response(
+            message="Project update fetched successfully.",
+            data=serializer.data,
+        )
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+
+        partial = kwargs.pop("partial", False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return success_response(
+            message="Project update updated successfully.",
+            data=serializer.data,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        self.perform_destroy(instance)
+
+        return success_response(
+            message="Project update deleted successfully.",
+            data={},
+        )
+
+
+class ProjectUpdateImageCreateView(generics.CreateAPIView):
+    queryset = ProjectUpdateImage.objects.select_related("project_update", "project_update__project")
+    serializer_class = ProjectUpdateImageCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ["admin", "staff"]:
+            return success_response(
+                message="You do not have permission to upload a project update image.",
+                data={},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        project_update_id = request.data.get("project_update")
+        if not project_update_id:
+            return success_response(
+                message="Project update field is required.",
+                data={},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.user.role == "staff":
+            owns_update_project = ProjectUpdate.objects.filter(
+                id=project_update_id,
+                project__created_by=request.user
+            ).exists()
+
+            if not owns_update_project:
+                return success_response(
+                    message="You can only upload images for updates under your own projects.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        response_serializer = ProjectUpdateImageSerializer(serializer.instance)
+        return success_response(
+            message="Project update image uploaded successfully.",
+            data=response_serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class ProjectUpdateImageDeleteView(generics.DestroyAPIView):
+    queryset = ProjectUpdateImage.objects.select_related("project_update", "project_update__project")
+    serializer_class = ProjectUpdateImageSerializer
+
+    def get_permissions(self):
+        return [permissions.IsAuthenticated(), IsAdminOrStaffProjectUpdateImageOwner()]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        self.perform_destroy(instance)
+
+        return success_response(
+            message="Project update image deleted successfully.",
             data={},
         )
