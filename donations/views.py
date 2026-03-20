@@ -1,17 +1,12 @@
 from rest_framework import generics, permissions, status
-from django.contrib.auth import get_user_model
 
 from core.views import success_response
-from donations.models import Donation
-from donations.serializers import DonationSerializer, PublicDonationCreateSerializer
-from projects.models import Project
-
-User = get_user_model()
+from .models import Donation
+from .serializers import DonationSerializer, PublicDonationCreateSerializer
 
 
 class DonationListCreateView(generics.ListCreateAPIView):
     queryset = Donation.objects.select_related("project", "donor", "project__created_by")
-    serializer_class = DonationSerializer
     filterset_fields = ["project", "status", "payment_method", "is_anonymous"]
     search_fields = ["donor_name", "donor_email", "project__title", "transaction_reference"]
     ordering_fields = ["donated_at", "amount"]
@@ -24,17 +19,14 @@ class DonationListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         user = self.request.user
+
         if user.role == "admin":
             return queryset
-
         if user.role == "staff":
             return queryset.filter(project__created_by=user)
-
         if user.role == "donor":
             return queryset.filter(donor=user)
-
         return queryset.none()
 
     def get_serializer_class(self):
@@ -44,8 +36,8 @@ class DonationListCreateView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
         page = self.paginate_queryset(queryset)
+
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return success_response(
@@ -84,17 +76,14 @@ class DonationDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         user = self.request.user
+
         if user.role == "admin":
             return queryset
-
         if user.role == "staff":
             return queryset.filter(project__created_by=user)
-
         if user.role == "donor":
             return queryset.filter(donor=user)
-
         return queryset.none()
 
     def retrieve(self, request, *args, **kwargs):
@@ -116,8 +105,8 @@ class MyDonationsView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
         page = self.paginate_queryset(queryset)
+
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return success_response(
