@@ -35,6 +35,7 @@ class Project(models.Model):
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PLANNING)
     budget = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    target_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
