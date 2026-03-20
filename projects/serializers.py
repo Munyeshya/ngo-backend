@@ -36,6 +36,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "budget",
+            "target_amount",
             "start_date",
             "end_date",
             "location",

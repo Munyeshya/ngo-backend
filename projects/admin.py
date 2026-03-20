@@ -17,6 +17,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "title",
         "status",
         "budget",
+        "target_amount",
         "start_date",
         "end_date",
         "location",
