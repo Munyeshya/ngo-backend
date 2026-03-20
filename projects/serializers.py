@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db.models import Sum
 from rest_framework import serializers
 
-from .models import Project, Partner
+from .models import Project, Partner, ProjectUpdate, ProjectUpdateImage
 
 
 class PartnerSerializer(serializers.ModelSerializer):
@@ -106,3 +106,47 @@ class ProjectSerializer(serializers.ModelSerializer):
         total = self._completed_total(obj)
         target = obj.target_amount or Decimal("0.00")
         return target > 0 and total >= target
+class ProjectUpdateImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectUpdateImage
+        fields = [
+            "id",
+            "image",
+            "caption",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+    images = ProjectUpdateImageSerializer(many=True, read_only=True)
+    project_title = serializers.CharField(source="project.title", read_only=True)
+    created_by = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = ProjectUpdate
+        fields = [
+            "id",
+            "project",
+            "project_title",
+            "title",
+            "description",
+            "images",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at"]
+
+
+class ProjectUpdateImageCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectUpdateImage
+        fields = [
+            "id",
+            "project_update",
+            "image",
+            "caption",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
