@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions, status
 from core.views import success_response
 from users.permissions import IsAdminUserRole, IsStaffUserRole, IsAdminOrStaffProjectOwner,IsAdminOrStaffProjectUpdateOwner,IsAdminOrStaffProjectUpdateImageOwner
-from .models import Partner, Project, ProjectUpdate, ProjectUpdateImage
-from .serializers import PartnerSerializer, ProjectSerializer,ProjectUpdateSerializer,ProjectUpdateImageSerializer,ProjectUpdateImageCreateSerializer
+from .models import Partner, Project, ProjectUpdate, ProjectUpdateImage,ProjectInterest
+from .serializers import PartnerSerializer, ProjectSerializer,ProjectUpdateSerializer,ProjectUpdateImageSerializer,ProjectUpdateImageCreateSerializer,ProjectInterestSerializer,ProjectInterestCreateSerializer
 
 
 class PartnerListCreateView(generics.ListCreateAPIView):
@@ -351,4 +351,91 @@ class ProjectUpdateImageDeleteView(generics.DestroyAPIView):
         return success_response(
             message="Project update image deleted successfully.",
             data={},
+        )
+    
+class ProjectInterestSubscribeView(generics.CreateAPIView):
+    queryset = ProjectInterest.objects.select_related("project", "user")
+    serializer_class = ProjectInterestCreateSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        interest = serializer.save()
+
+        response_serializer = ProjectInterestSerializer(interest)
+        return success_response(
+            message="Project interest subscription saved successfully.",
+            data=response_serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class ProjectInterestUnsubscribeView(generics.GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        project_id = request.data.get("project")
+        email = request.data.get("email")
+
+        if not project_id or not email:
+            return success_response(
+                message="Project and email are required.",
+                data={},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        interest = ProjectInterest.objects.filter(
+            project_id=project_id,
+            email=email,
+            is_active=True
+        ).first()
+
+        if not interest:
+            return success_response(
+                message="No active subscription found for this project and email.",
+                data={},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        interest.is_active = False
+        interest.save()
+
+        return success_response(
+            message="Project interest unsubscribed successfully.",
+            data={},
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class MyProjectInterestsView(generics.ListAPIView):
+    serializer_class = ProjectInterestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return ProjectInterest.objects.select_related("project", "user").filter(
+            user=self.request.user,
+            is_active=True
+        ).order_by("-created_at")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return success_response(
+                message="My project interests fetched successfully.",
+                data={
+                    "count": self.paginator.page.paginator.count,
+                    "next": self.paginator.get_next_link(),
+                    "previous": self.paginator.get_previous_link(),
+                    "results": serializer.data,
+                },
+            )
+
+        serializer = self.get_serializer(queryset, many=True)
+        return success_response(
+            message="My project interests fetched successfully.",
+            data=serializer.data,
         )
