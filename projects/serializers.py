@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db.models import Sum
 from rest_framework import serializers
 
-from .models import Project, Partner, ProjectUpdate, ProjectUpdateImage
+from .models import Project, Partner, ProjectUpdate, ProjectUpdateImage,ProjectInterest
 
 
 class PartnerSerializer(serializers.ModelSerializer):
@@ -150,3 +150,64 @@ class ProjectUpdateImageCreateSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+class ProjectInterestSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source="project.title", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = ProjectInterest
+        fields = [
+            "id",
+            "project",
+            "project_title",
+            "user",
+            "username",
+            "name",
+            "email",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = ["id", "user", "created_at"]
+
+
+class ProjectInterestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectInterest
+        fields = [
+            "project",
+            "name",
+            "email",
+        ]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        project = attrs["project"]
+        email = attrs["email"]
+
+        existing = ProjectInterest.objects.filter(project=project, email=email).first()
+        if existing and existing.is_active:
+            raise serializers.ValidationError(
+                {"email": "This email is already subscribed to this project."}
+            )
+
+        attrs["existing_interest"] = existing
+        attrs["request_user"] = request.user if request and request.user.is_authenticated else None
+        return attrs
+
+    def create(self, validated_data):
+        existing_interest = validated_data.pop("existing_interest", None)
+        request_user = validated_data.pop("request_user", None)
+
+        if existing_interest:
+            existing_interest.name = validated_data.get("name")
+            existing_interest.user = request_user or existing_interest.user
+            existing_interest.is_active = True
+            existing_interest.save()
+            return existing_interest
+
+        return ProjectInterest.objects.create(
+            user=request_user,
+            is_active=True,
+            **validated_data,
+        )
