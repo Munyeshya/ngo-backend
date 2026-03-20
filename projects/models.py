@@ -101,3 +101,34 @@ class ProjectUpdateImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.project_update.title}"
+
+class ProjectInterest(models.Model):
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="interests"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_interests"
+    )
+    name = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "project_interests"
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "email"],
+                name="unique_project_interest_email"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.email} interested in {self.project.title}"

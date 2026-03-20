@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Project, Partner, ProjectUpdate, ProjectUpdateImage
+from .models import (
+    Project,
+    Partner,
+    ProjectUpdate,
+    ProjectUpdateImage,
+    ProjectInterest,
+)
 
 
 @admin.register(Partner)
@@ -28,6 +34,14 @@ class ProjectUpdateAdmin(admin.ModelAdmin):
 class ProjectUpdateImageAdmin(admin.ModelAdmin):
     list_display = ("id", "project_update", "caption", "created_at")
     search_fields = ("project_update__title", "caption")
+    ordering = ("-created_at",)
+
+
+@admin.register(ProjectInterest)
+class ProjectInterestAdmin(admin.ModelAdmin):
+    list_display = ("id", "project", "email", "user", "is_active", "created_at")
+    list_filter = ("is_active", "created_at", "project")
+    search_fields = ("email", "name", "project__title", "user__username")
     ordering = ("-created_at",)
 
 
