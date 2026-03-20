@@ -3,7 +3,7 @@ from core.views import success_response
 from users.permissions import IsAdminUserRole, IsStaffUserRole, IsAdminOrStaffProjectOwner,IsAdminOrStaffProjectUpdateOwner,IsAdminOrStaffProjectUpdateImageOwner
 from .models import Partner, Project, ProjectUpdate, ProjectUpdateImage,ProjectInterest
 from .serializers import PartnerSerializer, ProjectSerializer,ProjectUpdateSerializer,ProjectUpdateImageSerializer,ProjectUpdateImageCreateSerializer,ProjectInterestSerializer,ProjectInterestCreateSerializer
-
+from .utils import send_project_update_notifications
 
 class PartnerListCreateView(generics.ListCreateAPIView):
     queryset = Partner.objects.all()
@@ -240,11 +240,14 @@ class ProjectUpdateListCreateView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(created_by=request.user)
+        project_update = serializer.save(created_by=request.user)
 
+        sent_count = send_project_update_notifications(project_update)
+
+        response_serializer = self.get_serializer(project_update)
         return success_response(
-            message="Project update created successfully.",
-            data=serializer.data,
+            message=f"Project update created successfully. Notifications sent to {sent_count} recipient(s).",
+            data=response_serializer.data,
             status_code=status.HTTP_201_CREATED,
         )
 
