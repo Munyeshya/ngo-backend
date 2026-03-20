@@ -13,4 +13,5 @@ urlpatterns = [
 
     path("", UserListView.as_view(), name="user-list"),
     path("<int:pk>/", UserDetailView.as_view(), name="user-detail"),
+    path("claim-donor-account/", DonorClaimAccountView.as_view(), name="claim-donor-account"),
 ]

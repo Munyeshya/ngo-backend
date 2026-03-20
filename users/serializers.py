@@ -113,3 +113,34 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
         if value not in valid_roles:
             raise serializers.ValidationError("Invalid role selected.")
         return value
+
+class DonorClaimAccountSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match."}
+            )
+
+        email = attrs["email"]
+        user = User.objects.filter(email=email, role=User.ROLE_DONOR).first()
+
+        if not user:
+            raise serializers.ValidationError(
+                {"email": "No donor account found for this email."}
+            )
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data["user"]
+        password = self.validated_data["password"]
+
+        user.set_password(password)
+        user.save()
+
+        return user

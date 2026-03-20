@@ -136,3 +136,23 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
             message="User updated successfully.",
             data=serializer.data,
         )
+
+class DonorClaimAccountView(generics.GenericAPIView):
+    serializer_class = DonorClaimAccountSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return success_response(
+            message="Donor account claimed successfully. You can now log in.",
+            data={
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role,
+            },
+            status_code=status.HTTP_200_OK,
+        )
