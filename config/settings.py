@@ -33,12 +33,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
 
     'rest_framework',
     'corsheaders',
@@ -173,3 +175,10 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+JAZZMIN_SETTINGS = {
+    "site_title": "My NGO Admin",
+    "site_header": "NGO Project",
+    "welcome_sign": "Welcome to the NGO Management System",
+    "copyright": "NGOs Ltd",
+}
