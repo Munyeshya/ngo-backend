@@ -139,17 +139,10 @@ class SelfUserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A user with this username already exists.")
         return value
 
-class DonorClaimAccountSerializer(serializers.Serializer):
+class DonorClaimRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=8)
-    confirm_password = serializers.CharField(write_only=True, min_length=8)
 
     def validate(self, attrs):
-        if attrs["password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError(
-                {"confirm_password": "Passwords do not match."}
-            )
-
         email = attrs["email"]
         user = User.objects.filter(email=email, role=User.ROLE_DONOR).first()
 
@@ -161,11 +154,40 @@ class DonorClaimAccountSerializer(serializers.Serializer):
         attrs["user"] = user
         return attrs
 
+
+class DonorClaimVerifySerializer(serializers.Serializer):
+    token = serializers.CharField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match."}
+            )
+
+        token = attrs["token"]
+        user = User.objects.filter(
+            donor_claim_token=token,
+            role=User.ROLE_DONOR,
+        ).first()
+
+        if not user or not user.donor_claim_token_is_valid(token):
+            raise serializers.ValidationError(
+                {"token": "This donor claim token is invalid or expired."}
+            )
+
+        attrs["user"] = user
+        return attrs
+
     def save(self, **kwargs):
         user = self.validated_data["user"]
         password = self.validated_data["password"]
 
         user.set_password(password)
+        user.is_verified = True
+        user.donor_claim_token = None
+        user.donor_claim_token_expires_at = None
         user.save()
 
         return user
