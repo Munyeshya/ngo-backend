@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        :root {
+            --bg: #f4f7f4;
+            --panel: #ffffff;
+            --panel-alt: #eef5ef;
+            --text: #183028;
+            --muted: #5e746c;
+            --line: #d6e1d9;
+            --accent: #1d6b4f;
+            --get: #0f766e;
+            --post: #1d4ed8;
+            --put: #b45309;
+            --delete: #b91c1c;
+            --shadow: 0 20px 50px rgba(24, 48, 40, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(29, 107, 79, 0.10), transparent 28%),
+                linear-gradient(180deg, #f7faf7 0%, var(--bg) 100%);
+        }
+
+        .shell {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 20px 64px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #163c31 0%, #1d6b4f 55%, #74a98f 100%);
+            color: #f8fffb;
+            border-radius: 28px;
+            padding: 40px 32px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero h1 {
+            margin: 0 0 10px;
+            font-size: clamp(2rem, 4vw, 3.6rem);
+            line-height: 1.05;
+        }
+
+        .hero p {
+            margin: 0;
+            max-width: 760px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: rgba(248, 255, 251, 0.92);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .hero-stat {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .hero-stat strong {
+            display: block;
+            font-size: 1.35rem;
+            margin-bottom: 4px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 24px;
+            margin-top: 28px;
+            align-items: start;
+        }
+
+        .sidebar,
+        .content-block,
+        .endpoint-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            padding: 22px;
+        }
+
+        .sidebar h2,
+        .content-block h2,
+        .section-header h2 {
+            margin: 0 0 12px;
+            font-size: 1.2rem;
+        }
+
+        .sidebar p,
+        .content-block p,
+        .endpoint-card p,
+        .endpoint-card li {
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .sidebar a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .sidebar ul,
+        .content-block ul,
+        .endpoint-card ul {
+            padding-left: 18px;
+            margin: 10px 0 0;
+        }
+
+        .content {
+            display: grid;
+            gap: 24px;
+        }
+
+        .content-block {
+            padding: 24px;
+        }
+
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .token-card {
+            background: var(--panel-alt);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .token-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .section {
+            display: grid;
+            gap: 16px;
+        }
+
+        .section-header {
+            padding: 0 4px;
+        }
+
+        .section-header p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .endpoint-card {
+            padding: 20px;
+        }
+
+        .endpoint-top {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .method {
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.82rem;
+            min-width: 78px;
+            text-align: center;
+        }
+
+        .method.GET { background: var(--get); }
+        .method.POST { background: var(--post); }
+        .method.PUT, .method.PATCH, .method.PUT-PATCH { background: var(--put); }
+        .method.DELETE { background: var(--delete); }
+
+        code {
+            font-family: "Consolas", "Courier New", monospace;
+            background: #f3f7f5;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 2px 8px;
+            color: #17362b;
+        }
+
+        .meta {
+            display: grid;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .meta-row {
+            background: #fbfdfb;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .meta-row strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .callout {
+            margin-top: 16px;
+            background: #fff8e8;
+            border: 1px solid #f0d89c;
+            border-radius: 16px;
+            padding: 16px;
+            color: #6e5622;
+        }
+
+        @media (max-width: 980px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <h1>{{ title }}</h1>
+            <p>
+                This page documents the current backend behavior as implemented in the Django API.
+                It covers required request data, expected access level, and the main response shape
+                for each endpoint exposed by this backend.
+            </p>
+            <div class="hero-grid">
+                <div class="hero-stat">
+                    <strong>{{ endpoint_groups|length }}</strong>
+                    <span>Endpoint groups</span>
+                </div>
+                <div class="hero-stat">
+                    <strong>{{ base_url }}</strong>
+                    <span>API base prefix</span>
+                </div>
+                <div class="hero-stat">
+                    <strong>JWT</strong>
+                    <span>Authentication style</span>
+                </div>
+                <div class="hero-stat">
+                    <strong>HTML + JSON</strong>
+                    <span>Docs at root, API under /api</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="layout">
+            <aside class="sidebar">
+                <h2>On This Page</h2>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#auth">Auth Reference</a></li>
+                    {% for group in endpoint_groups %}
+                    <li><a href="#section-{{ forloop.counter }}">{{ group.title }}</a></li>
+                    {% endfor %}
+                </ul>
+                <div class="callout">
+                    This documentation reflects the current backend implementation and permissions as they exist now.
+                </div>
+            </aside>
+
+            <main class="content">
+                <section class="content-block" id="overview">
+                    <h2>Overview</h2>
+                    <p>
+                        The backend is organized around users, projects, beneficiaries, donations, and project update subscriptions.
+                        Most JSON responses follow the format <code>{"success": true, "message": "...", "data": ...}</code>.
+                        Paginated list endpoints usually return <code>count</code>, <code>next</code>, <code>previous</code>, and <code>results</code> inside <code>data</code>.
+                    </p>
+                    <ul>
+                        <li>Base API prefix: <code>{{ base_url }}</code></li>
+                        <li>Authentication: Bearer JWT access tokens</li>
+                        <li>Refresh endpoint: <code>/api/users/token/refresh/</code></li>
+                        <li>Media files are served from <code>/media/</code> while <code>DEBUG</code> is enabled</li>
+                    </ul>
+                </section>
+
+                <section class="content-block" id="auth">
+                    <h2>Auth Reference</h2>
+                    <div class="token-grid">
+                        {% for item in auth_reference %}
+                        <article class="token-card">
+                            <strong>{{ item.label }}</strong>
+                            <div>{{ item.description }}</div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                {% for group in endpoint_groups %}
+                <section class="section" id="section-{{ forloop.counter }}">
+                    <div class="section-header">
+                        <h2>{{ group.title }}</h2>
+                        <p>{{ group.description }}</p>
+                    </div>
+
+                    {% for endpoint in group.endpoints %}
+                    <article class="endpoint-card">
+                        <div class="endpoint-top">
+                            <span class="method {{ endpoint.method_class }}">{{ endpoint.method }}</span>
+                            <code>{{ endpoint.path }}</code>
+                        </div>
+
+                        <p>{{ endpoint.purpose }}</p>
+
+                        <div class="meta">
+                            <div class="meta-row">
+                                <strong>Who Can Access It</strong>
+                                <div>{{ endpoint.auth }}</div>
+                            </div>
+                            <div class="meta-row">
+                                <strong>Data Needed</strong>
+                                {% if endpoint.data_needed_is_list %}
+                                <ul>
+                                    {% for item in endpoint.data_needed %}
+                                    <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <div>{{ endpoint.data_needed }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="meta-row">
+                                <strong>Main Response Data</strong>
+                                <ul>
+                                    {% for item in endpoint.responses %}
+                                    <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </section>
+                {% endfor %}
+            </main>
+        </div>
+    </div>
+</body>
+</html>
