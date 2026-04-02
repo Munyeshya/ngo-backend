@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User
 
@@ -37,6 +38,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User(**validated_data)
+        if user.role == User.ROLE_STAFF:
+            user.is_active = False
+            user.is_verified = False
         user.set_password(password)
         user.save()
         return user
@@ -68,6 +72,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        username = attrs.get(self.username_field)
+        user = User.objects.filter(**{self.username_field: username}).first()
+        if user and user.role == User.ROLE_STAFF and not user.is_active:
+            raise AuthenticationFailed("Your staff account is pending admin approval.")
+
         data = super().validate(attrs)
 
         data["user"] = {
@@ -109,8 +118,9 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_role(self, value):
-        valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
-        if value not in valid_roles:
+        if value == User.ROLE_ADMIN:
+            raise serializers.ValidationError("Admin accounts cannot be created through public registration.")
+        if value not in [User.ROLE_STAFF, User.ROLE_DONOR]:
             raise serializers.ValidationError("Invalid role selected.")
         return value
 
