@@ -79,7 +79,10 @@ def api_documentation_view(request):
   "first_name": "Jane"
 }""",
         ("POST", "/api/users/claim-donor-account/"): """{
-  "email": "donor1@mail.local",
+  "email": "donor1@mail.local"
+}""",
+        ("POST", "/api/users/claim-donor-account/verify/"): """{
+  "token": "claim_token_from_email",
   "password": "StrongPass123",
   "confirm_password": "StrongPass123"
 }""",
@@ -321,13 +324,23 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/claim-donor-account/",
                     "auth": "No token",
-                    "purpose": "Set a password for an existing donor account by email.",
+                    "purpose": "Request a donor account claim email with a verification token.",
                     "data_needed": [
                         "email: donor email address",
+                    ],
+                    "responses": ["success message"],
+                },
+                {
+                    "method": "POST",
+                    "path": "/api/users/claim-donor-account/verify/",
+                    "auth": "No token",
+                    "purpose": "Verify the donor claim token from email and set the donor account password.",
+                    "data_needed": [
+                        "token: claim token from email",
                         "password: string, minimum 8 characters",
                         "confirm_password: must match password",
                     ],
-                    "responses": ["id", "email", "username", "role"],
+                    "responses": ["id", "email", "username", "role", "is_verified"],
                 },
             ],
         },
@@ -629,7 +642,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/donations/",
                     "auth": "Access token",
-                    "purpose": "List donations visible to the authenticated user. Admin sees all, staff sees donations for owned projects, donor sees their own.",
+                    "purpose": "List donations visible to the authenticated user. Admin sees all, staff sees donations for owned projects, donor sees their own. Anonymous donation identity is masked for non-admin viewers who do not own the donation.",
                     "data_needed": [
                         "Optional query params: project, status, payment_method, is_anonymous, search, ordering, page",
                     ],
@@ -639,7 +652,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/donations/",
                     "auth": "No token or access token",
-                    "purpose": "Create a donation record.",
+                    "purpose": "Create a donation record. Anonymous donations still keep internal donation data, but identity is masked in non-owner/non-admin API responses.",
                     "data_needed": [
                         "project: project ID",
                         "donor_name: string",
@@ -655,7 +668,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/donations/<id>/",
                     "auth": "Access token",
-                    "purpose": "Fetch one visible donation by ID.",
+                    "purpose": "Fetch one visible donation by ID. Anonymous donation identity is masked for non-admin viewers who do not own the donation.",
                     "data_needed": "Path parameter id.",
                     "responses": ["donation object"],
                 },
