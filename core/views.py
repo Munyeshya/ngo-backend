@@ -71,11 +71,12 @@ def api_documentation_view(request):
   "username": "donor_jane",
   "email": "jane@example.com",
   "phone_number": "0788000000",
-  "role": "donor",
-  "is_verified": true,
-  "is_active": true,
   "first_name": "Jane",
   "last_name": "Doe"
+}""",
+        ("PATCH", "/api/users/<id>/"): """{
+  "phone_number": "0788000000",
+  "first_name": "Jane"
 }""",
         ("POST", "/api/users/claim-donor-account/"): """{
   "email": "donor1@mail.local",
@@ -295,17 +296,24 @@ def api_documentation_view(request):
                     "method": "PUT",
                     "path": "/api/users/<id>/",
                     "auth": "Admin access token or the user's own access token",
-                    "purpose": "Update a user. The current implementation uses the admin update serializer even for self-updates.",
+                    "purpose": "Replace a user profile. Non-admin users are limited to their own safe profile fields.",
                     "data_needed": [
                         "username",
                         "email",
                         "phone_number",
                         "profile_image",
-                        "role",
-                        "is_verified",
-                        "is_active",
                         "first_name",
                         "last_name",
+                    ],
+                    "responses": ["updated user object"],
+                },
+                {
+                    "method": "PATCH",
+                    "path": "/api/users/<id>/",
+                    "auth": "Admin access token or the user's own access token",
+                    "purpose": "Partially update a user profile. Non-admin users are limited to their own safe profile fields.",
+                    "data_needed": [
+                        "Any subset of: username, email, phone_number, profile_image, first_name, last_name",
                     ],
                     "responses": ["updated user object"],
                 },
