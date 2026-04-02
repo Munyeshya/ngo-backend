@@ -207,13 +207,13 @@ def api_documentation_view(request):
         },
         {
             "title": "Users And Authentication",
-            "description": "Registration, login, token lifecycle, profile access, admin user management, and email-driven account workflows.",
+            "description": "Authentication, account setup, profile access, admin user management, and email-driven account flows.",
             "endpoints": [
                 {
                     "method": "POST",
                     "path": "/api/users/register/",
                     "auth": "No token",
-                    "purpose": "Register a new donor account or apply for a staff account. Staff registrations are created inactive, receive a confirmation email, and require admin approval before login.",
+                    "purpose": "Create a donor account or submit a staff application. Staff accounts stay inactive until an admin approves them.",
                     "data_needed": [
                         "username: string, unique",
                         "email: valid email, unique",
@@ -228,7 +228,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/login/",
                     "auth": "No token",
-                    "purpose": "Authenticate a user and return JWT tokens. Staff accounts cannot log in until approved by an admin.",
+                    "purpose": "Log in and return JWT tokens. Staff accounts cannot log in until approved.",
                     "data_needed": [
                         "username: existing username",
                         "password: account password",
@@ -259,7 +259,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/users/profile/",
                     "auth": "Access token",
-                    "purpose": "Return the authenticated user profile.",
+                    "purpose": "Return the authenticated user's profile.",
                     "data_needed": "No request body.",
                     "responses": ["id", "username", "email", "phone_number", "profile_image", "role", "is_verified", "is_active", "date_joined"],
                 },
@@ -267,7 +267,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/users/me/",
                     "auth": "Access token",
-                    "purpose": "Alias of the profile endpoint.",
+                    "purpose": "Alias for the profile endpoint.",
                     "data_needed": "No request body.",
                     "responses": ["same fields as /api/users/profile/"],
                 },
@@ -299,7 +299,7 @@ def api_documentation_view(request):
                     "method": "PUT",
                     "path": "/api/users/<id>/",
                     "auth": "Admin access token or the user's own access token",
-                    "purpose": "Replace a user profile. Non-admin users are limited to their own safe profile fields.",
+                    "purpose": "Replace a user profile. Non-admin users can update only their own safe profile fields.",
                     "data_needed": [
                         "username",
                         "email",
@@ -314,7 +314,7 @@ def api_documentation_view(request):
                     "method": "PATCH",
                     "path": "/api/users/<id>/",
                     "auth": "Admin access token or the user's own access token",
-                    "purpose": "Partially update a user profile. Non-admin users are limited to their own safe profile fields. Admin activation changes for staff accounts trigger status update emails.",
+                    "purpose": "Partially update a user profile. Staff activation changes made by an admin trigger status emails.",
                     "data_needed": [
                         "Any subset of: username, email, phone_number, profile_image, first_name, last_name",
                     ],
@@ -324,7 +324,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/claim-donor-account/",
                     "auth": "No token",
-                    "purpose": "Request a donor account claim email with a verification token. This supports donors who gave before creating a password-based account.",
+                    "purpose": "Request a donor claim email. This is for donors who donated first and want to activate account access later.",
                     "data_needed": [
                         "email: donor email address",
                     ],
@@ -334,7 +334,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/claim-donor-account/verify/",
                     "auth": "No token",
-                    "purpose": "Verify the donor claim token from email and set the donor account password. A follow-up success email is sent after verification.",
+                    "purpose": "Verify the emailed donor claim token and set the account password.",
                     "data_needed": [
                         "token: claim token from email",
                         "password: string, minimum 8 characters",
@@ -346,7 +346,7 @@ def api_documentation_view(request):
         },
         {
             "title": "Projects And Partners",
-            "description": "Partner management, project CRUD, project updates, update images, and project interest subscriptions.",
+            "description": "Partner management, project CRUD, progress updates, update images, and project interest subscriptions.",
             "endpoints": [
                 {
                     "method": "GET",
@@ -412,7 +412,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/projects/",
                     "auth": "Staff or admin access token",
-                    "purpose": "Create a project.",
+                    "purpose": "Create a project that can later receive donations.",
                     "data_needed": [
                         "title: string",
                         "description: text",
@@ -467,7 +467,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/projects/updates/",
                     "auth": "Staff or admin access token",
-                    "purpose": "Create a project update and trigger update emails.",
+                    "purpose": "Create a project update and send update emails to eligible subscribers and donors.",
                     "data_needed": [
                         "project: project ID",
                         "title: string",
@@ -527,7 +527,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/projects/interests/subscribe/",
                     "auth": "No token or access token",
-                    "purpose": "Subscribe an email address to project updates.",
+                    "purpose": "Subscribe an email address to future project update emails.",
                     "data_needed": [
                         "project: project ID",
                         "name: optional string",
@@ -539,7 +539,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/projects/interests/unsubscribe/",
                     "auth": "No token",
-                    "purpose": "Deactivate a project interest subscription.",
+                    "purpose": "Deactivate a project update subscription for an email address.",
                     "data_needed": [
                         "project: project ID",
                         "email: subscribed email address",
@@ -558,7 +558,7 @@ def api_documentation_view(request):
         },
         {
             "title": "Beneficiaries",
-            "description": "Beneficiary records tied to projects plus beneficiary image uploads.",
+            "description": "Beneficiary records tied to projects, plus beneficiary image uploads.",
             "endpoints": [
                 {
                     "method": "GET",
@@ -636,13 +636,13 @@ def api_documentation_view(request):
         },
         {
             "title": "Donations",
-            "description": "Donation submission, guest donor onboarding, anonymous donation privacy, and role-filtered donation access.",
+            "description": "Donation submission, guest donor onboarding, anonymous donation privacy, and role-based donation access.",
             "endpoints": [
                 {
                     "method": "GET",
                     "path": "/api/donations/",
                     "auth": "Access token",
-                    "purpose": "List donations visible to the authenticated user. Admin sees all, staff sees donations for owned projects, donor sees their own. Anonymous donation identity is masked for non-admin viewers who do not own the donation.",
+                    "purpose": "List donations visible to the authenticated user. Admin sees all, staff sees donations for their own projects, and donors see their own donations.",
                     "data_needed": [
                         "Optional query params: project, status, payment_method, is_anonymous, search, ordering, page",
                     ],
@@ -652,7 +652,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/donations/",
                     "auth": "No token or access token",
-                    "purpose": "Create a donation record. Guest donors can donate without logging in, and the backend can create a claimable donor profile for later account activation. Anonymous donations still keep internal donation data, but identity is masked in non-owner/non-admin API responses.",
+                    "purpose": "Create a donation record. Guest donors can donate without logging in, and the backend can create a claimable donor profile for later account activation.",
                     "data_needed": [
                         "project: project ID",
                         "donor_name: string",
@@ -668,7 +668,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/donations/<id>/",
                     "auth": "Access token",
-                    "purpose": "Fetch one visible donation by ID. Anonymous donation identity is masked for non-admin viewers who do not own the donation.",
+                    "purpose": "Fetch one visible donation by ID, using the same access rules as the donation list.",
                     "data_needed": "Path parameter id.",
                     "responses": ["donation object"],
                 },
@@ -676,7 +676,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/donations/my/",
                     "auth": "Access token",
-                    "purpose": "List donations linked to the authenticated user account.",
+                    "purpose": "List donations linked to the authenticated donor account.",
                     "data_needed": [
                         "Optional query param: page",
                     ],
