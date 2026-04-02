@@ -46,10 +46,10 @@ def api_documentation_view(request):
         ("GET", "/"): None,
         ("GET", "/api/health/"): None,
         ("POST", "/api/users/register/"): """{
-  "username": "donor_jane",
-  "email": "jane@example.com",
+  "username": "staff_aline",
+  "email": "aline@example.com",
   "phone_number": "0788000000",
-  "role": "donor",
+  "role": "staff",
   "password": "StrongPass123"
 }""",
         ("POST", "/api/users/login/"): """{
@@ -213,13 +213,13 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/register/",
                     "auth": "No token",
-                    "purpose": "Register a new user account.",
+                    "purpose": "Register a new donor account or apply for a staff account. Staff registrations require admin approval before login.",
                     "data_needed": [
                         "username: string, unique",
                         "email: valid email, unique",
                         "phone_number: optional string",
                         "profile_image: optional file upload",
-                        "role: one of admin, staff, donor",
+                        "role: one of staff, donor",
                         "password: string, minimum 8 characters",
                     ],
                     "responses": ["id", "username", "email", "phone_number", "profile_image", "role"],
@@ -324,7 +324,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/claim-donor-account/",
                     "auth": "No token",
-                    "purpose": "Request a donor account claim email with a verification token.",
+                    "purpose": "Request a donor account claim email with a verification token. This supports donors who gave before creating a password-based account.",
                     "data_needed": [
                         "email: donor email address",
                     ],
@@ -652,7 +652,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/donations/",
                     "auth": "No token or access token",
-                    "purpose": "Create a donation record. Anonymous donations still keep internal donation data, but identity is masked in non-owner/non-admin API responses.",
+                    "purpose": "Create a donation record. Guest donors can donate without logging in, and the backend can create a claimable donor profile for later account activation. Anonymous donations still keep internal donation data, but identity is masked in non-owner/non-admin API responses.",
                     "data_needed": [
                         "project: project ID",
                         "donor_name: string",
