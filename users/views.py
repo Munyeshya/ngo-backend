@@ -24,6 +24,7 @@ class RegisterView(generics.CreateAPIView):
         message = "User registered successfully."
 
         if user.role == User.ROLE_STAFF:
+            send_staff_application_received_email(user)
             message = "Staff registration submitted successfully. Await admin approval before login."
 
         return success_response(
@@ -56,7 +57,13 @@ from .serializers import (
     DonorClaimRequestSerializer,
     DonorClaimVerifySerializer,
 )
-from .utils import issue_donor_claim_token, send_donor_claim_email
+from .utils import (
+    issue_donor_claim_token,
+    send_donor_claim_email,
+    send_donor_claim_success_email,
+    send_staff_application_received_email,
+    send_staff_status_email,
+)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -141,11 +148,23 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         self.check_object_permissions(request, instance)
+        previous_is_active = instance.is_active
+        previous_role = instance.role
 
         partial = kwargs.pop("partial", False)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        updated_user = serializer.instance
+        if (
+            request.user.role == User.ROLE_ADMIN
+            and previous_role == User.ROLE_STAFF
+            and updated_user.role == User.ROLE_STAFF
+            and previous_is_active != updated_user.is_active
+        ):
+            send_staff_status_email(updated_user)
+
         return success_response(
             message="User updated successfully.",
             data=serializer.data,
@@ -178,6 +197,7 @@ class DonorClaimVerifyView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        send_donor_claim_success_email(user)
 
         return success_response(
             message="Donor account verified successfully. You can now log in.",
