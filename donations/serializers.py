@@ -1,13 +1,13 @@
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Donation
-
-User = get_user_model()
 
 
 class DonationSerializer(serializers.ModelSerializer):
     project_title = serializers.CharField(source="project.title", read_only=True)
-    donor_username = serializers.CharField(source="donor.username", read_only=True)
+    donor = serializers.SerializerMethodField()
+    donor_username = serializers.SerializerMethodField()
+    donor_name = serializers.SerializerMethodField()
+    donor_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Donation
@@ -30,12 +30,41 @@ class DonationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "donor",
             "status",
             "transaction_reference",
             "donated_at",
             "updated_at",
         ]
+
+    def _can_view_identity(self, obj):
+        if not obj.is_anonymous:
+            return True
+
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+
+        return request.user.role == "admin" or obj.donor_id == request.user.id
+
+    def get_donor(self, obj):
+        if not self._can_view_identity(obj):
+            return None
+        return obj.donor_id
+
+    def get_donor_username(self, obj):
+        if not self._can_view_identity(obj) or not obj.donor:
+            return None
+        return obj.donor.username
+
+    def get_donor_name(self, obj):
+        if not self._can_view_identity(obj):
+            return "Anonymous"
+        return obj.donor_name
+
+    def get_donor_email(self, obj):
+        if not self._can_view_identity(obj):
+            return None
+        return obj.donor_email
 
 
 class PublicDonationCreateSerializer(serializers.ModelSerializer):
@@ -62,13 +91,6 @@ class PublicDonationCreateSerializer(serializers.ModelSerializer):
 
         if request and request.user and request.user.is_authenticated:
             donor_user = request.user
-
-        donor_email = validated_data["donor_email"]
-
-        if donor_user is None:
-            existing_user = User.objects.filter(email=donor_email).first()
-            if existing_user:
-                donor_user = existing_user
 
         donation = Donation.objects.create(
             donor=donor_user,
