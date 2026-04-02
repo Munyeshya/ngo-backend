@@ -145,12 +145,6 @@ class DonorClaimRequestSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs["email"]
         user = User.objects.filter(email=email, role=User.ROLE_DONOR).first()
-
-        if not user:
-            raise serializers.ValidationError(
-                {"email": "No donor account found for this email."}
-            )
-
         attrs["user"] = user
         return attrs
 
