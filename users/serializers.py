@@ -114,6 +114,31 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid role selected.")
         return value
 
+
+class SelfUserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "email",
+            "phone_number",
+            "profile_image",
+            "first_name",
+            "last_name",
+        ]
+
+    def validate_email(self, value):
+        user_id = self.instance.id if self.instance else None
+        if User.objects.exclude(id=user_id).filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate_username(self, value):
+        user_id = self.instance.id if self.instance else None
+        if User.objects.exclude(id=user_id).filter(username=value).exists():
+            raise serializers.ValidationError("A user with this username already exists.")
+        return value
+
 class DonorClaimAccountSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
