@@ -172,6 +172,9 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
+FRONTEND_LOGIN_URL = config("FRONTEND_LOGIN_URL", default="")
+FRONTEND_DONOR_CLAIM_URL = config("FRONTEND_DONOR_CLAIM_URL", default="")
+FRONTEND_STAFF_GUIDE_URL = config("FRONTEND_STAFF_GUIDE_URL", default="")
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
