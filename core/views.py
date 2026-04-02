@@ -42,6 +42,142 @@ def api_documentation_view(request):
         },
     ]
 
+    json_body_examples = {
+        ("GET", "/"): None,
+        ("GET", "/api/health/"): None,
+        ("POST", "/api/users/register/"): """{
+  "username": "donor_jane",
+  "email": "jane@example.com",
+  "phone_number": "0788000000",
+  "role": "donor",
+  "password": "StrongPass123"
+}""",
+        ("POST", "/api/users/login/"): """{
+  "username": "donor_jane",
+  "password": "StrongPass123"
+}""",
+        ("POST", "/api/users/token/refresh/"): """{
+  "refresh": "your_refresh_token"
+}""",
+        ("POST", "/api/users/logout/"): """{
+  "refresh": "your_refresh_token"
+}""",
+        ("GET", "/api/users/profile/"): None,
+        ("GET", "/api/users/me/"): None,
+        ("GET", "/api/users/admin-only/"): None,
+        ("GET", "/api/users/"): None,
+        ("GET", "/api/users/<id>/"): None,
+        ("PUT", "/api/users/<id>/"): """{
+  "username": "donor_jane",
+  "email": "jane@example.com",
+  "phone_number": "0788000000",
+  "role": "donor",
+  "is_verified": true,
+  "is_active": true,
+  "first_name": "Jane",
+  "last_name": "Doe"
+}""",
+        ("POST", "/api/users/claim-donor-account/"): """{
+  "email": "donor1@mail.local",
+  "password": "StrongPass123",
+  "confirm_password": "StrongPass123"
+}""",
+        ("GET", "/api/projects/partners/"): None,
+        ("POST", "/api/projects/partners/"): """{
+  "name": "Hope For Communities",
+  "website": "https://example.org",
+  "description": "Community support partner",
+  "is_active": true
+}""",
+        ("GET", "/api/projects/partners/<id>/"): None,
+        ("PUT/PATCH", "/api/projects/partners/<id>/"): """{
+  "name": "Hope For Communities",
+  "website": "https://example.org",
+  "description": "Updated partner profile",
+  "is_active": true
+}""",
+        ("DELETE", "/api/projects/partners/<id>/"): None,
+        ("GET", "/api/projects/"): None,
+        ("POST", "/api/projects/"): """{
+  "title": "Community Health Outreach",
+  "description": "Field support for rural families.",
+  "status": "active",
+  "budget": "1500000.00",
+  "target_amount": "2000000.00",
+  "start_date": "2026-04-01",
+  "end_date": "2026-09-30",
+  "location": "Kigali, Rwanda",
+  "partner_ids": [1, 3]
+}""",
+        ("GET", "/api/projects/<id>/"): None,
+        ("PUT/PATCH", "/api/projects/<id>/"): """{
+  "title": "Community Health Outreach",
+  "description": "Updated field support details.",
+  "status": "active",
+  "budget": "1800000.00",
+  "target_amount": "2200000.00",
+  "start_date": "2026-04-01",
+  "end_date": "2026-10-15",
+  "location": "Kigali, Rwanda",
+  "partner_ids": [1, 3, 5]
+}""",
+        ("DELETE", "/api/projects/<id>/"): None,
+        ("GET", "/api/projects/updates/"): None,
+        ("POST", "/api/projects/updates/"): """{
+  "project": 12,
+  "title": "Phase One Completed",
+  "description": "The first delivery milestone has been completed successfully."
+}""",
+        ("GET", "/api/projects/updates/<id>/"): None,
+        ("PUT/PATCH", "/api/projects/updates/<id>/"): """{
+  "project": 12,
+  "title": "Phase One Completed",
+  "description": "Updated progress summary for the milestone."
+}""",
+        ("DELETE", "/api/projects/updates/<id>/"): None,
+        ("POST", "/api/projects/updates/images/"): "Use multipart/form-data, not JSON. Fields: project_update, image, caption.",
+        ("DELETE", "/api/projects/updates/images/<id>/"): None,
+        ("POST", "/api/projects/interests/subscribe/"): """{
+  "project": 12,
+  "name": "Jane Doe",
+  "email": "jane@example.com"
+}""",
+        ("POST", "/api/projects/interests/unsubscribe/"): """{
+  "project": 12,
+  "email": "jane@example.com"
+}""",
+        ("GET", "/api/projects/interests/my/"): None,
+        ("GET", "/api/beneficiaries/"): None,
+        ("POST", "/api/beneficiaries/"): """{
+  "project": 12,
+  "name": "Aline Uwase",
+  "description": "Beneficiary enrolled through the outreach project.",
+  "is_active": true
+}""",
+        ("GET", "/api/beneficiaries/<id>/"): None,
+        ("PUT/PATCH", "/api/beneficiaries/<id>/"): """{
+  "project": 12,
+  "name": "Aline Uwase",
+  "description": "Updated beneficiary support record.",
+  "is_active": true
+}""",
+        ("DELETE", "/api/beneficiaries/<id>/"): None,
+        ("POST", "/api/beneficiaries/images/"): "Use multipart/form-data, not JSON. Fields: beneficiary, image, caption.",
+        ("DELETE", "/api/beneficiaries/images/<id>/"): None,
+        ("GET", "/api/donations/"): None,
+        ("POST", "/api/donations/"): """{
+  "project": 12,
+  "donor_name": "Jane Doe",
+  "donor_email": "jane@example.com",
+  "amount": "50000.00",
+  "payment_method": "momo",
+  "message": "Keep up the great work.",
+  "is_anonymous": false
+}""",
+        ("GET", "/api/donations/<id>/"): None,
+        ("GET", "/api/donations/my/"): None,
+    }
+
     endpoint_groups = [
         {
             "title": "System",
@@ -533,6 +669,8 @@ def api_documentation_view(request):
         for endpoint in group["endpoints"]:
             endpoint["method_class"] = endpoint["method"].replace("/", "-")
             endpoint["data_needed_is_list"] = isinstance(endpoint["data_needed"], list)
+            endpoint["json_body"] = json_body_examples.get((endpoint["method"], endpoint["path"]))
+            endpoint["has_json_body"] = endpoint["json_body"] is not None
 
     context = {
         "title": "NGO Backend API Documentation",
