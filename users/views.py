@@ -20,9 +20,14 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        user = serializer.instance
+        message = "User registered successfully."
+
+        if user.role == User.ROLE_STAFF:
+            message = "Staff registration submitted successfully. Await admin approval before login."
 
         return success_response(
-            message="User registered successfully.",
+            message=message,
             data=serializer.data,
             status_code=status.HTTP_201_CREATED,
         )
