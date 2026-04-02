@@ -154,8 +154,9 @@ class DonorClaimRequestView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        token = issue_donor_claim_token(user)
-        send_donor_claim_email(user, token)
+        if user:
+            token = issue_donor_claim_token(user)
+            send_donor_claim_email(user, token)
 
         return success_response(
             message="A donor claim verification email has been sent if the account exists.",
