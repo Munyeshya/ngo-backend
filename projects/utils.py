@@ -1,12 +1,12 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Sum
-from django.conf import settings
 
 from donations.models import Donation
-from .models import ProjectInterest
 from .email_templates import build_project_update_email_html
+from .models import ProjectInterest
 
 
 def get_project_funding_stats(project):
@@ -43,7 +43,10 @@ def get_project_funding_stats(project):
 
 def get_project_notification_emails(project):
     donation_emails = list(
-        project.donations.filter(status=Donation.STATUS_COMPLETED)
+        project.donations.filter(
+            status=Donation.STATUS_COMPLETED,
+            is_anonymous=False,
+        )
         .exclude(donor_email__isnull=True)
         .exclude(donor_email__exact="")
         .values_list("donor_email", flat=True)
@@ -70,7 +73,7 @@ def send_project_update_notifications(project_update):
 
     stats = get_project_funding_stats(project)
 
-    subject = f"Update: {project.title} — {project_update.title}"
+    subject = f"Update: {project.title} - {project_update.title}"
 
     html_content = build_project_update_email_html(
         project_title=project.title,
