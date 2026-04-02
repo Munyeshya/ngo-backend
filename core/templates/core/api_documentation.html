@@ -133,6 +133,22 @@
             word-break: break-word;
         }
 
+        .json-block {
+            background: #12241d;
+            border: 1px solid #244438;
+        }
+
+        .json-block code {
+            background: transparent;
+            border: 0;
+            color: #dff7ea;
+            padding: 0;
+            font-size: 0.78rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: block;
+        }
+
         .list-compact li {
             margin-bottom: 0.2rem;
         }
@@ -281,6 +297,13 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {% if endpoint.has_json_body %}
+                            <div class="json-block rounded-4 p-3 mt-3">
+                                <div class="small fw-semibold text-white-50 mb-2">JSON Body Example</div>
+                                <code>{{ endpoint.json_body }}</code>
+                            </div>
+                            {% endif %}
                         </article>
                         {% endfor %}
                     </div>
