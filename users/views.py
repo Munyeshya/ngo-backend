@@ -48,8 +48,10 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     AdminUserUpdateSerializer,
     SelfUserUpdateSerializer,
-    DonorClaimAccountSerializer,
+    DonorClaimRequestSerializer,
+    DonorClaimVerifySerializer,
 )
+from .utils import issue_donor_claim_token, send_donor_claim_email
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -144,8 +146,26 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
             data=serializer.data,
         )
 
-class DonorClaimAccountView(generics.GenericAPIView):
-    serializer_class = DonorClaimAccountSerializer
+class DonorClaimRequestView(generics.GenericAPIView):
+    serializer_class = DonorClaimRequestSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        token = issue_donor_claim_token(user)
+        send_donor_claim_email(user, token)
+
+        return success_response(
+            message="A donor claim verification email has been sent if the account exists.",
+            data={},
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class DonorClaimVerifyView(generics.GenericAPIView):
+    serializer_class = DonorClaimVerifySerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -154,12 +174,13 @@ class DonorClaimAccountView(generics.GenericAPIView):
         user = serializer.save()
 
         return success_response(
-            message="Donor account claimed successfully. You can now log in.",
+            message="Donor account verified successfully. You can now log in.",
             data={
                 "id": user.id,
                 "email": user.email,
                 "username": user.username,
                 "role": user.role,
+                "is_verified": user.is_verified,
             },
             status_code=status.HTTP_200_OK,
         )
