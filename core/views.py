@@ -207,13 +207,13 @@ def api_documentation_view(request):
         },
         {
             "title": "Users And Authentication",
-            "description": "Registration, login, token lifecycle, profile access, and admin user management.",
+            "description": "Registration, login, token lifecycle, profile access, admin user management, and email-driven account workflows.",
             "endpoints": [
                 {
                     "method": "POST",
                     "path": "/api/users/register/",
                     "auth": "No token",
-                    "purpose": "Register a new donor account or apply for a staff account. Staff registrations require admin approval before login.",
+                    "purpose": "Register a new donor account or apply for a staff account. Staff registrations are created inactive, receive a confirmation email, and require admin approval before login.",
                     "data_needed": [
                         "username: string, unique",
                         "email: valid email, unique",
@@ -228,7 +228,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/users/login/",
                     "auth": "No token",
-                    "purpose": "Authenticate a user and return JWT tokens.",
+                    "purpose": "Authenticate a user and return JWT tokens. Staff accounts cannot log in until approved by an admin.",
                     "data_needed": [
                         "username: existing username",
                         "password: account password",
@@ -314,7 +314,7 @@ def api_documentation_view(request):
                     "method": "PATCH",
                     "path": "/api/users/<id>/",
                     "auth": "Admin access token or the user's own access token",
-                    "purpose": "Partially update a user profile. Non-admin users are limited to their own safe profile fields.",
+                    "purpose": "Partially update a user profile. Non-admin users are limited to their own safe profile fields. Admin activation changes for staff accounts trigger status update emails.",
                     "data_needed": [
                         "Any subset of: username, email, phone_number, profile_image, first_name, last_name",
                     ],
@@ -328,13 +328,13 @@ def api_documentation_view(request):
                     "data_needed": [
                         "email: donor email address",
                     ],
-                    "responses": ["success message"],
+                    "responses": ["success message", "verification email if a donor account exists"],
                 },
                 {
                     "method": "POST",
                     "path": "/api/users/claim-donor-account/verify/",
                     "auth": "No token",
-                    "purpose": "Verify the donor claim token from email and set the donor account password.",
+                    "purpose": "Verify the donor claim token from email and set the donor account password. A follow-up success email is sent after verification.",
                     "data_needed": [
                         "token: claim token from email",
                         "password: string, minimum 8 characters",
@@ -636,7 +636,7 @@ def api_documentation_view(request):
         },
         {
             "title": "Donations",
-            "description": "Donation submission and role-filtered donation access.",
+            "description": "Donation submission, guest donor onboarding, anonymous donation privacy, and role-filtered donation access.",
             "endpoints": [
                 {
                     "method": "GET",
@@ -662,7 +662,7 @@ def api_documentation_view(request):
                         "message: optional text",
                         "is_anonymous: optional boolean",
                     ],
-                    "responses": ["donation object"],
+                    "responses": ["donation object", "claimable donor account may be created for guest donor emails"],
                 },
                 {
                     "method": "GET",
