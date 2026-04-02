@@ -46,6 +46,9 @@ from .serializers import (
     UserRegisterSerializer,
     UserProfileSerializer,
     CustomTokenObtainPairSerializer,
+    AdminUserUpdateSerializer,
+    SelfUserUpdateSerializer,
+    DonorClaimAccountSerializer,
 )
 
 
@@ -109,13 +112,16 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
 
     def get_permissions(self):
-        if self.request.method == "PUT":
+        if self.request.method in ["PUT", "PATCH"]:
             return [permissions.IsAuthenticated(), IsAdminOrSelf()]
         return [IsAdminUserRole()]
 
     def get_serializer_class(self):
-        if self.request.method == "PUT":
-            return AdminUserUpdateSerializer
+        if self.request.method in ["PUT", "PATCH"]:
+            target_user = self.get_object()
+            if self.request.user.role == "admin" and self.request.user.id != target_user.id:
+                return AdminUserUpdateSerializer
+            return SelfUserUpdateSerializer
         return UserProfileSerializer
 
     def retrieve(self, request, *args, **kwargs):
@@ -129,7 +135,8 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
         instance = self.get_object()
         self.check_object_permissions(request, instance)
 
-        serializer = self.get_serializer(instance, data=request.data)
+        partial = kwargs.pop("partial", False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return success_response(
