@@ -131,7 +131,7 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
 
     def get_permissions(self):
-        if self.request.method in ["PUT", "PATCH"]:
+        if self.request.method in ["GET", "PUT", "PATCH"]:
             return [permissions.IsAuthenticated(), IsAdminOrSelf()]
         return [IsAdminUserRole()]
 
