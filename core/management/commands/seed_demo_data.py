@@ -225,6 +225,26 @@ class Command(BaseCommand):
             Project.STATUS_COMPLETED,
             Project.STATUS_ON_HOLD,
         ]
+        project_type_map = {
+            "Community Health Outreach": Project.TYPE_HEALTH,
+            "Safe Water Access Program": Project.TYPE_COMMUNITY_DEVELOPMENT,
+            "Girls Education Support": Project.TYPE_EDUCATION,
+            "Maternal Health Initiative": Project.TYPE_HEALTH,
+            "Youth Skills Development": Project.TYPE_YOUTH_EMPOWERMENT,
+            "School Feeding Expansion": Project.TYPE_EDUCATION,
+            "Rural Agriculture Strengthening": Project.TYPE_LIVELIHOOD,
+            "Disability Inclusion Support": Project.TYPE_COMMUNITY_DEVELOPMENT,
+            "Nutrition Improvement Campaign": Project.TYPE_HEALTH,
+            "Women Economic Empowerment": Project.TYPE_WOMEN_EMPOWERMENT,
+            "Emergency Shelter Response": Project.TYPE_EMERGENCY_RELIEF,
+            "Village Sanitation Program": Project.TYPE_COMMUNITY_DEVELOPMENT,
+            "Digital Literacy for Youth": Project.TYPE_YOUTH_EMPOWERMENT,
+            "Climate Resilient Farming": Project.TYPE_ENVIRONMENT,
+            "Child Protection Initiative": Project.TYPE_COMMUNITY_DEVELOPMENT,
+            "Mental Health Awareness Drive": Project.TYPE_HEALTH,
+            "Community Savings Support": Project.TYPE_LIVELIHOOD,
+            "Early Childhood Learning Program": Project.TYPE_EDUCATION,
+        }
         projects = []
 
         for i in range(count):
@@ -238,6 +258,10 @@ class Command(BaseCommand):
             project = Project.objects.create(
                 title=title,
                 description=fake.paragraph(nb_sentences=6),
+                project_type=project_type_map.get(
+                    title,
+                    random.choice([choice[0] for choice in Project.PROJECT_TYPE_CHOICES]),
+                ),
                 status=random.choices(
                     statuses,
                     weights=[15, 50, 20, 15],
