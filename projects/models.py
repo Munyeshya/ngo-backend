@@ -23,6 +23,15 @@ class Project(models.Model):
     STATUS_ACTIVE = "active"
     STATUS_COMPLETED = "completed"
     STATUS_ON_HOLD = "on_hold"
+    TYPE_EDUCATION = "education"
+    TYPE_HEALTH = "health"
+    TYPE_LIVELIHOOD = "livelihood"
+    TYPE_WOMEN_EMPOWERMENT = "women_empowerment"
+    TYPE_YOUTH_EMPOWERMENT = "youth_empowerment"
+    TYPE_COMMUNITY_DEVELOPMENT = "community_development"
+    TYPE_ENVIRONMENT = "environment"
+    TYPE_EMERGENCY_RELIEF = "emergency_relief"
+    TYPE_OTHER = "other"
 
     STATUS_CHOICES = [
         (STATUS_PLANNING, "Planning"),
@@ -30,9 +39,25 @@ class Project(models.Model):
         (STATUS_COMPLETED, "Completed"),
         (STATUS_ON_HOLD, "On Hold"),
     ]
+    PROJECT_TYPE_CHOICES = [
+        (TYPE_EDUCATION, "Education"),
+        (TYPE_HEALTH, "Health"),
+        (TYPE_LIVELIHOOD, "Livelihood"),
+        (TYPE_WOMEN_EMPOWERMENT, "Women Empowerment"),
+        (TYPE_YOUTH_EMPOWERMENT, "Youth Empowerment"),
+        (TYPE_COMMUNITY_DEVELOPMENT, "Community Development"),
+        (TYPE_ENVIRONMENT, "Environment"),
+        (TYPE_EMERGENCY_RELIEF, "Emergency Relief"),
+        (TYPE_OTHER, "Other"),
+    ]
 
     title = models.CharField(max_length=255)
     description = models.TextField()
+    project_type = models.CharField(
+        max_length=40,
+        choices=PROJECT_TYPE_CHOICES,
+        default=TYPE_OTHER,
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PLANNING)
     budget = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     target_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
