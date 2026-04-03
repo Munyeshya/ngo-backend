@@ -319,8 +319,8 @@ def api_documentation_view(request):
                 {
                     "method": "GET",
                     "path": "/api/users/<id>/",
-                    "auth": "Admin access token",
-                    "purpose": "Fetch one user by numeric ID.",
+                    "auth": "Admin access token or the user's own access token",
+                    "purpose": "Fetch one user by numeric ID. Admin can fetch any user, while donors, staff, and admin can also fetch their own account record.",
                     "data_needed": "Path parameter id.",
                     "responses": ["user profile object"],
                 },
@@ -392,8 +392,8 @@ def api_documentation_view(request):
                 {
                     "method": "PATCH",
                     "path": "/api/users/staff-application/",
-                    "auth": "Staff or admin access token",
-                    "purpose": "Create or update the authenticated staff user's verification application. Uploading new documents can return the application to review flow.",
+                    "auth": "Staff access token",
+                    "purpose": "Create or update the authenticated staff user's verification application. Uploading new documents can return the application to review flow and trigger review emails.",
                     "data_needed": [
                         "applicant_type: individual | group",
                         "mission_summary: text",
@@ -415,7 +415,7 @@ def api_documentation_view(request):
                     "method": "PATCH",
                     "path": "/api/users/staff-applications/<id>/",
                     "auth": "Admin access token",
-                    "purpose": "Review one staff application. Admin can approve, reject the whole application, or reject only a document and request changes with an email message.",
+                    "purpose": "Review one staff application. Admin can approve, reject the whole application, reject only specific documents, request changes, and include an email message with extra requirements.",
                     "data_needed": [
                         "status: approved | changes_requested | rejected | under_review",
                         "individual_id_status or group_legal_document_status or representative_id_status",
@@ -610,7 +610,7 @@ def api_documentation_view(request):
                     "method": "GET",
                     "path": "/api/projects/reports/",
                     "auth": "Admin access token",
-                    "purpose": "List submitted project reports. Can be filtered by project or report status for admin moderation workflows.",
+                    "purpose": "List submitted project reports. Admin uses this queue to review reported projects, inspect complaint counts and claims, then open a specific report workflow in the frontend.",
                     "data_needed": [
                         "Optional query params: project, status",
                     ],
@@ -620,7 +620,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/projects/reports/",
                     "auth": "Authenticated user token",
-                    "purpose": "Submit a report against a project. The first open report moves the project into under_review automatically, but donations stay open until admin freezes funding or takes action.",
+                    "purpose": "Submit a report against a project. The first open report moves the project into under_review automatically, but donations stay open until admin freezes funding or takes the project down.",
                     "data_needed": [
                         "project: project ID",
                         "reason_type: misleading_information | misuse_of_funds | inappropriate_content | fake_project | duplicate_project | other",
@@ -642,7 +642,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/projects/cashouts/",
                     "auth": "Staff or admin access token",
-                    "purpose": "Record a project cashout when the project is clear and funding is open. Each cashout automatically creates a normal public project update that shows money usage details.",
+                    "purpose": "Record a project cashout when the project is clear, funding is open, and available balance is enough. Each cashout automatically creates a normal public project update that shows money usage details.",
                     "data_needed": [
                         "project: project ID",
                         "amount: decimal greater than 0 and not above available balance",
@@ -779,7 +779,7 @@ def api_documentation_view(request):
                     "method": "POST",
                     "path": "/api/donations/",
                     "auth": "No token or access token",
-                    "purpose": "Create a donation record. Guest donors can donate without logging in, and the backend can create a claimable donor profile for later account activation. Donations are blocked only when funding is frozen or the project is taken down.",
+                    "purpose": "Create a donation record. Guest donors can donate without logging in, and the backend can create a claimable donor profile for later account activation. Donations stay open during review and are blocked only when funding is frozen or the project is taken down.",
                     "data_needed": [
                         "project: project ID",
                         "donor_name: string",
@@ -833,6 +833,7 @@ def api_documentation_view(request):
         "base_url": "/api/",
         "auth_reference": auth_reference,
         "endpoint_groups": endpoint_groups,
+        "summary_note": "Final backend state: staff verification gates project creation, donors can claim accounts later, project reports feed moderation, cashouts publish public money-usage updates, and admin oversight drives moderation and analytics.",
     }
     return render(request, "core/api_documentation.html", context)
 
