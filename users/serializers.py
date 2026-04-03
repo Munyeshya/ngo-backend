@@ -340,13 +340,16 @@ class StaffApplicationReviewSerializer(serializers.ModelSerializer):
         }
 
         if applicant_type == StaffApplication.TYPE_INDIVIDUAL:
-            if status == StaffApplication.STATUS_APPROVED and document_statuses["individual"] != StaffApplication.DOC_APPROVED:
+            if (
+                status == StaffApplication.STATUS_APPROVED
+                and document_statuses["individual"] == StaffApplication.DOC_REJECTED
+            ):
                 raise serializers.ValidationError({"individual_id_status": "The individual ID document must be approved before approving the application."})
         else:
             if status == StaffApplication.STATUS_APPROVED:
-                if document_statuses["group"] != StaffApplication.DOC_APPROVED:
+                if document_statuses["group"] == StaffApplication.DOC_REJECTED:
                     raise serializers.ValidationError({"group_legal_document_status": "The legal document must be approved before approving the application."})
-                if document_statuses["representative"] != StaffApplication.DOC_APPROVED:
+                if document_statuses["representative"] == StaffApplication.DOC_REJECTED:
                     raise serializers.ValidationError({"representative_id_status": "The representative ID document must be approved before approving the application."})
 
         return attrs
@@ -354,6 +357,16 @@ class StaffApplicationReviewSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        if instance.status == StaffApplication.STATUS_APPROVED:
+            if instance.applicant_type == StaffApplication.TYPE_INDIVIDUAL:
+                instance.individual_id_status = StaffApplication.DOC_APPROVED
+                instance.individual_id_reason = ""
+            else:
+                instance.group_legal_document_status = StaffApplication.DOC_APPROVED
+                instance.group_legal_document_reason = ""
+                instance.representative_id_status = StaffApplication.DOC_APPROVED
+                instance.representative_id_reason = ""
 
         if instance.status != StaffApplication.STATUS_APPROVED:
             rejected_docs = [
