@@ -3,7 +3,15 @@ from decimal import Decimal
 from django.db.models import Sum
 from rest_framework import serializers
 
-from .models import Project, Partner, ProjectUpdate, ProjectUpdateImage,ProjectInterest
+from .models import (
+    Project,
+    Partner,
+    ProjectUpdate,
+    ProjectUpdateImage,
+    ProjectInterest,
+    ProjectReport,
+    ProjectCashout,
+)
 
 
 class PartnerSerializer(serializers.ModelSerializer):
@@ -33,6 +41,9 @@ class ProjectSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     project_type_display = serializers.CharField(source="get_project_type_display", read_only=True)
     total_donated = serializers.SerializerMethodField()
+    total_cashouts = serializers.SerializerMethodField()
+    available_balance = serializers.SerializerMethodField()
+    reports_count = serializers.SerializerMethodField()
     funding_percentage = serializers.SerializerMethodField()
     remaining_amount = serializers.SerializerMethodField()
     exceeded_amount = serializers.SerializerMethodField()
@@ -47,9 +58,15 @@ class ProjectSerializer(serializers.ModelSerializer):
             "project_type",
             "project_type_display",
             "status",
+            "moderation_status",
+            "funding_status",
+            "moderation_note",
             "budget",
             "target_amount",
             "total_donated",
+            "total_cashouts",
+            "available_balance",
+            "reports_count",
             "funding_percentage",
             "remaining_amount",
             "exceeded_amount",
@@ -85,6 +102,15 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_total_donated(self, obj):
         return self._completed_total(obj)
+
+    def get_total_cashouts(self, obj):
+        return obj.total_cashouts()
+
+    def get_available_balance(self, obj):
+        return obj.available_balance()
+
+    def get_reports_count(self, obj):
+        return obj.reports.filter(status=ProjectReport.STATUS_OPEN).count()
 
     def get_funding_percentage(self, obj):
         total = self._completed_total(obj)
@@ -134,6 +160,9 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
             "project_title",
             "title",
             "description",
+            "update_type",
+            "cashout_amount",
+            "remaining_balance",
             "images",
             "created_by",
             "created_at",
@@ -153,6 +182,83 @@ class ProjectUpdateImageCreateSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class ProjectReportSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source="project.title", read_only=True)
+    reported_by_username = serializers.CharField(source="reported_by.username", read_only=True)
+
+    class Meta:
+        model = ProjectReport
+        fields = [
+            "id",
+            "project",
+            "project_title",
+            "reported_by",
+            "reported_by_username",
+            "reason_type",
+            "claim_text",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "reported_by",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ProjectCashoutSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source="project.title", read_only=True)
+    requested_by_username = serializers.CharField(source="requested_by.username", read_only=True)
+
+    class Meta:
+        model = ProjectCashout
+        fields = [
+            "id",
+            "project",
+            "project_title",
+            "requested_by",
+            "requested_by_username",
+            "amount",
+            "purpose",
+            "remaining_balance",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "requested_by",
+            "remaining_balance",
+            "created_at",
+        ]
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Cashout amount must be greater than zero.")
+        return value
+
+    def validate(self, attrs):
+        project = attrs["project"]
+        amount = attrs["amount"]
+        request = self.context.get("request")
+
+        if request and request.user.role == "staff" and project.created_by_id != request.user.id:
+            raise serializers.ValidationError({"project": "You can only cash out from your own projects."})
+
+        if not project.can_cash_out():
+            raise serializers.ValidationError(
+                {"project": "This project is currently restricted from cashout activity."}
+            )
+
+        if amount > project.available_balance():
+            raise serializers.ValidationError(
+                {"amount": "Cashout amount exceeds the available project balance."}
+            )
+
+        return attrs
 
 class ProjectInterestSerializer(serializers.ModelSerializer):
     project_title = serializers.CharField(source="project.title", read_only=True)
