@@ -91,6 +91,16 @@ class PublicDonationCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Donation amount must be greater than zero.")
         return value
 
+    def validate(self, attrs):
+        project = attrs["project"]
+        if not project.can_accept_donations():
+            raise serializers.ValidationError(
+                {
+                    "project": "This project is currently not accepting donations while under admin review."
+                }
+            )
+        return attrs
+
     def create(self, validated_data):
         request = self.context.get("request")
         donor_user = None
