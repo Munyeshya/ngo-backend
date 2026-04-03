@@ -132,8 +132,8 @@ class Project(models.Model):
 
     def can_accept_donations(self):
         return (
-            self.moderation_status == self.MODERATION_CLEAR
-            and self.funding_status == self.FUNDING_OPEN
+            self.funding_status == self.FUNDING_OPEN
+            and self.moderation_status != self.MODERATION_TAKEN_DOWN
         )
 
     def can_cash_out(self):
