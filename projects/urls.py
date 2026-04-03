@@ -11,6 +11,8 @@ urlpatterns = [
     path("updates/<int:pk>/", ProjectUpdateDetailView.as_view(), name="project-update-detail"),
     path("updates/images/", ProjectUpdateImageCreateView.as_view(), name="project-update-image-create"),
     path("updates/images/<int:pk>/", ProjectUpdateImageDeleteView.as_view(), name="project-update-image-delete"),
+    path("reports/", ProjectReportListCreateView.as_view(), name="project-report-list-create"),
+    path("cashouts/", ProjectCashoutListCreateView.as_view(), name="project-cashout-list-create"),
 
     path("interests/subscribe/", ProjectInterestSubscribeView.as_view(), name="project-interest-subscribe"),
     path("interests/unsubscribe/", ProjectInterestUnsubscribeView.as_view(), name="project-interest-unsubscribe"),
