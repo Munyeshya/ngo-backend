@@ -86,18 +86,36 @@ def send_donor_claim_success_email(user):
 
 
 def send_staff_application_received_email(user):
+    settings_url = _build_link(getattr(settings, "FRONTEND_STAFF_SETTINGS_URL", ""))
+    settings_line = f"Manage your application here: {settings_url}\n\n" if settings_url else ""
     message = (
         f"Hello {user.first_name or user.username or 'Applicant'},\n\n"
-        "Your staff account application has been received.\n"
-        "An administrator will review your request before your account can access project management features.\n\n"
+        "Your staff account has been created.\n"
+        "Before you can create public-facing projects, you need to complete and submit your verification documents.\n\n"
+        f"{settings_line}"
         "What happens next:\n"
-        "1. An admin reviews your staff request.\n"
-        "2. You receive an email when the account is approved or updated.\n"
-        "3. After approval, you can log in and create projects for donations.\n\n"
-        "You do not need to take any further action right now."
+        "1. Complete your staff verification details and upload the required documents.\n"
+        "2. An admin reviews your submission.\n"
+        "3. You receive an email if documents need changes or once the application is approved.\n\n"
+        "You can already sign in, but project creation stays locked until approval."
     )
     return _send_user_email(
         subject="We received your staff application",
+        message=message,
+        recipient=user.email,
+    )
+
+
+def send_staff_application_submitted_email(application):
+    user = application.user
+    message = (
+        f"Hello {user.first_name or user.username or 'Applicant'},\n\n"
+        "Your staff verification documents have been submitted for review.\n"
+        "An administrator will review the documents and contact you if any further changes are required.\n\n"
+        "You will receive another email once the review is complete."
+    )
+    return _send_user_email(
+        subject="Your staff documents are under review",
         message=message,
         recipient=user.email,
     )
@@ -124,6 +142,46 @@ def send_staff_status_email(user):
             f"Hello {user.first_name or user.username or 'Staff Member'},\n\n"
             "There has been an update to your staff account status.\n"
             "Your staff access is currently inactive. If you believe this is unexpected, please contact an administrator."
+        )
+
+    return _send_user_email(
+        subject=subject,
+        message=message,
+        recipient=user.email,
+    )
+
+
+def send_staff_application_review_email(application):
+    user = application.user
+    settings_url = _build_link(getattr(settings, "FRONTEND_STAFF_SETTINGS_URL", ""))
+    settings_line = f"\nUpdate your submission here: {settings_url}\n" if settings_url else "\n"
+    admin_message = application.admin_message.strip() if application.admin_message else ""
+    admin_note_block = f"\nAdmin message:\n{admin_message}\n" if admin_message else ""
+
+    if application.status == application.STATUS_APPROVED:
+        subject = "Your staff verification has been approved"
+        message = (
+            f"Hello {user.first_name or user.username or 'Applicant'},\n\n"
+            "Your staff verification has been approved.\n"
+            "You can now create and manage projects in the staff portal."
+            f"{admin_note_block}"
+        )
+    elif application.status == application.STATUS_REJECTED:
+        subject = "Your staff verification was not approved"
+        message = (
+            f"Hello {user.first_name or user.username or 'Applicant'},\n\n"
+            "Your staff verification application was rejected."
+            f"{admin_note_block}"
+            f"{settings_line}"
+        )
+    else:
+        subject = "Changes are needed on your staff verification"
+        message = (
+            f"Hello {user.first_name or user.username or 'Applicant'},\n\n"
+            "An admin reviewed your staff verification and requested some changes before approval."
+            f"{admin_note_block}"
+            "\nPlease review the document notes in your staff settings and upload updated files."
+            f"{settings_line}"
         )
 
     return _send_user_email(
