@@ -105,6 +105,7 @@ def api_documentation_view(request):
         ("POST", "/api/projects/"): """{
   "title": "Community Health Outreach",
   "description": "Field support for rural families.",
+  "project_type": "health",
   "status": "active",
   "budget": "1500000.00",
   "target_amount": "2000000.00",
@@ -117,6 +118,7 @@ def api_documentation_view(request):
         ("PUT/PATCH", "/api/projects/<id>/"): """{
   "title": "Community Health Outreach",
   "description": "Updated field support details.",
+  "project_type": "health",
   "status": "active",
   "budget": "1800000.00",
   "target_amount": "2200000.00",
@@ -404,7 +406,7 @@ def api_documentation_view(request):
                     "auth": "No token",
                     "purpose": "List projects with filters, search, ordering, and pagination.",
                     "data_needed": [
-                        "Optional query params: status, location, partners, search, ordering, page",
+                        "Optional query params: status, project_type, location, partners, search, ordering, page",
                     ],
                     "responses": ["count", "next", "previous", "results"],
                 },
@@ -416,6 +418,7 @@ def api_documentation_view(request):
                     "data_needed": [
                         "title: string",
                         "description: text",
+                        "project_type: education | health | livelihood | women_empowerment | youth_empowerment | community_development | environment | emergency_relief | other",
                         "status: planning | active | completed | on_hold",
                         "budget: decimal",
                         "target_amount: decimal",
