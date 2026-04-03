@@ -5,6 +5,8 @@ from .models import (
     ProjectUpdate,
     ProjectUpdateImage,
     ProjectInterest,
+    ProjectReport,
+    ProjectCashout,
 )
 
 
@@ -23,8 +25,8 @@ class ProjectUpdateImageInline(admin.TabularInline):
 
 @admin.register(ProjectUpdate)
 class ProjectUpdateAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "project", "created_by", "created_at")
-    list_filter = ("project", "created_at")
+    list_display = ("id", "title", "project", "update_type", "cashout_amount", "created_by", "created_at")
+    list_filter = ("project", "update_type", "created_at")
     search_fields = ("title", "description", "project__title")
     ordering = ("-created_at",)
     inlines = [ProjectUpdateImageInline]
@@ -52,6 +54,8 @@ class ProjectAdmin(admin.ModelAdmin):
         "title",
         "created_by",
         "status",
+        "moderation_status",
+        "funding_status",
         "budget",
         "target_amount",
         "start_date",
@@ -59,7 +63,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "location",
         "created_at",
     )
-    list_filter = ("status", "created_by", "start_date", "end_date", "created_at")
+    list_filter = ("status", "moderation_status", "funding_status", "created_by", "start_date", "end_date", "created_at")
     search_fields = ("title", "description", "location", "created_by__username", "created_by__email")
     filter_horizontal = ("partners",)
     ordering = ("-created_at",)
@@ -69,6 +73,11 @@ class ProjectAdmin(admin.ModelAdmin):
         "title",
         "description",
         "status",
+        "moderation_status",
+        "funding_status",
+        "moderation_note",
+        "moderation_reviewed_by",
+        "moderation_reviewed_at",
         "budget",
         "target_amount",
         "start_date",
@@ -80,3 +89,19 @@ class ProjectAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+
+
+@admin.register(ProjectReport)
+class ProjectReportAdmin(admin.ModelAdmin):
+    list_display = ("id", "project", "reported_by", "reason_type", "status", "created_at")
+    list_filter = ("reason_type", "status", "created_at")
+    search_fields = ("project__title", "reported_by__username", "reported_by__email", "claim_text")
+    ordering = ("-created_at",)
+
+
+@admin.register(ProjectCashout)
+class ProjectCashoutAdmin(admin.ModelAdmin):
+    list_display = ("id", "project", "requested_by", "amount", "remaining_balance", "created_at")
+    list_filter = ("created_at", "project")
+    search_fields = ("project__title", "requested_by__username", "requested_by__email", "purpose")
+    ordering = ("-created_at",)
