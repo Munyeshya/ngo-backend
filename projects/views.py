@@ -90,8 +90,8 @@ class PartnerDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ProjectListCreateView(generics.ListCreateAPIView):
     queryset = Project.objects.select_related("created_by").prefetch_related("partners")
     serializer_class = ProjectSerializer
-    filterset_fields = ["status", "location", "partners"]
-    search_fields = ["title", "description", "location"]
+    filterset_fields = ["status", "project_type", "location", "partners"]
+    search_fields = ["title", "description", "location", "project_type"]
     ordering_fields = ["created_at", "start_date", "budget", "title"]
     ordering = ["-created_at"]
 
