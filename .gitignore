@@ -1,2 +1,42 @@
-/venv
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment files
 .env
+.env.*
+!.env.example
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test, coverage, and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Django / local runtime artifacts
+media/
+staticfiles/
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+*.log
+*.pid
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Editor / OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
