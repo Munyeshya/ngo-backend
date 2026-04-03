@@ -111,6 +111,15 @@ class ProjectListCreateView(generics.ListCreateAPIView):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
+        if request.user.role == "staff":
+            application = getattr(request.user, "staff_application", None)
+            if not application or not application.can_create_projects():
+                return success_response(
+                    message="Your staff verification must be approved before you can create projects.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
