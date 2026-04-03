@@ -60,6 +60,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "email",
             "phone_number",
             "profile_image",
+            "first_name",
+            "last_name",
             "role",
             "is_verified",
             "is_active",
