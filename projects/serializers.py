@@ -31,6 +31,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         required=False,
     )
     created_by = serializers.StringRelatedField(read_only=True)
+    project_type_display = serializers.CharField(source="get_project_type_display", read_only=True)
     total_donated = serializers.SerializerMethodField()
     funding_percentage = serializers.SerializerMethodField()
     remaining_amount = serializers.SerializerMethodField()
@@ -43,6 +44,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "project_type",
+            "project_type_display",
             "status",
             "budget",
             "target_amount",
