@@ -18,6 +18,27 @@ Django REST backend for the NGO management platform. It handles authentication, 
 - A database created for the project
 - Optional SMTP credentials if you want email features to work locally
 
+## Clone And Folder Structure
+
+Clone the backend and frontend into the same parent folder so local development stays organized:
+
+```powershell
+mkdir NGOs
+cd NGOs
+git clone https://github.com/Munyeshya/ngo-backend.git
+git clone https://github.com/Munyeshya/ngo-frontend.git
+```
+
+Recommended structure:
+
+```text
+NGOs/
+  ngo-backend/
+  ngo-frontend/
+```
+
+Run backend commands inside `ngo-backend` and frontend commands inside `ngo-frontend`.
+
 ## Install
 
 1. Create and activate a virtual environment.
