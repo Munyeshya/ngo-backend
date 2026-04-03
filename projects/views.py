@@ -120,6 +120,21 @@ class ProjectListCreateView(generics.ListCreateAPIView):
             status_code=status.HTTP_201_CREATED,
         )
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        if not user or not user.is_authenticated:
+            return queryset
+
+        if user.role == "admin":
+            return queryset
+
+        if user.role == "staff":
+            return queryset.filter(created_by=user)
+
+        return queryset
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
@@ -197,6 +212,21 @@ class ProjectUpdateListCreateView(generics.ListCreateAPIView):
         if self.request.method == "POST":
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        if not user or not user.is_authenticated:
+            return queryset
+
+        if user.role == "admin":
+            return queryset
+
+        if user.role == "staff":
+            return queryset.filter(project__created_by=user)
+
+        return queryset
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
