@@ -10,6 +10,9 @@ urlpatterns = [
     path("profile/", ProfileView.as_view(), name="profile"),
     path("me/", ProfileView.as_view(), name="me"),
     path("admin-only/", AdminOnlyView.as_view(), name="admin-only"),
+    path("staff-application/", MyStaffApplicationView.as_view(), name="my-staff-application"),
+    path("staff-applications/", StaffApplicationListView.as_view(), name="staff-application-list"),
+    path("staff-applications/<int:pk>/", StaffApplicationReviewView.as_view(), name="staff-application-detail"),
 
     path("", UserListView.as_view(), name="user-list"),
     path("<int:pk>/", UserDetailView.as_view(), name="user-detail"),
