@@ -1,7 +1,49 @@
+from collections import defaultdict
+
 from rest_framework import generics, permissions, status
+from rest_framework.views import APIView
 
 from core.views import success_response
 from .models import Donation
+
+
+def build_project_type_support_analytics(queryset):
+    monthly_totals = defaultdict(lambda: [0] * 12)
+    yearly_totals = defaultdict(float)
+
+    for donation in queryset.select_related("project"):
+        project = donation.project
+        if not project:
+            continue
+
+        donated_at = donation.donated_at
+        if not donated_at:
+            continue
+
+        project_type = project.project_type or "other"
+        project_type_display = project.get_project_type_display()
+        amount = float(donation.amount or 0)
+        month_index = donated_at.month - 1
+
+        monthly_totals[(project_type, project_type_display)][month_index] += amount
+        yearly_totals[(project_type, project_type_display)] += amount
+
+    series = []
+    for (project_type, project_type_display), months in monthly_totals.items():
+        series.append(
+            {
+                "project_type": project_type,
+                "project_type_display": project_type_display,
+                "total_amount": round(yearly_totals[(project_type, project_type_display)], 2),
+                "monthly_amounts": [round(value, 2) for value in months],
+            }
+        )
+
+    series.sort(key=lambda item: item["total_amount"], reverse=True)
+    return {
+        "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        "series": series,
+    }
 from .serializers import DonationSerializer, PublicDonationCreateSerializer
 
 
@@ -123,4 +165,26 @@ class MyDonationsView(generics.ListAPIView):
         return success_response(
             message="My donations fetched successfully.",
             data=serializer.data,
+        )
+
+
+class DonationTypeSupportAnalyticsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if request.user.role != "admin":
+            return success_response(
+                message="You do not have permission to access donation analytics.",
+                data={},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        queryset = Donation.objects.filter(
+            status=Donation.STATUS_COMPLETED
+        ).select_related("project")
+
+        analytics = build_project_type_support_analytics(queryset)
+        return success_response(
+            message="Donation type support analytics fetched successfully.",
+            data=analytics,
         )
