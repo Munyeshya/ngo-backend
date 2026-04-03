@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions, status
 from core.views import success_response
 from users.permissions import IsAdminUserRole, IsStaffUserRole, IsAdminOrStaffProjectOwner,IsAdminOrStaffProjectUpdateOwner,IsAdminOrStaffProjectUpdateImageOwner
-from .models import Partner, Project, ProjectUpdate, ProjectUpdateImage,ProjectInterest
-from .serializers import PartnerSerializer, ProjectSerializer,ProjectUpdateSerializer,ProjectUpdateImageSerializer,ProjectUpdateImageCreateSerializer,ProjectInterestSerializer,ProjectInterestCreateSerializer
+from .models import Partner, Project, ProjectUpdate, ProjectUpdateImage,ProjectInterest, ProjectReport, ProjectCashout
+from .serializers import PartnerSerializer, ProjectSerializer,ProjectUpdateSerializer,ProjectUpdateImageSerializer,ProjectUpdateImageCreateSerializer,ProjectInterestSerializer,ProjectInterestCreateSerializer, ProjectReportSerializer, ProjectCashoutSerializer
 from .utils import send_project_update_notifications
 
 class PartnerListCreateView(generics.ListCreateAPIView):
@@ -120,6 +120,15 @@ class ProjectListCreateView(generics.ListCreateAPIView):
                     status_code=status.HTTP_403_FORBIDDEN,
                 )
 
+        if request.user.role == "staff":
+            protected_fields = {"moderation_status", "funding_status", "moderation_note"}
+            if protected_fields.intersection(request.data.keys()):
+                return success_response(
+                    message="Staff users cannot set project moderation controls.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -189,6 +198,15 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         self.check_object_permissions(request, instance)
+
+        if request.user.role == "staff":
+            protected_fields = {"moderation_status", "funding_status", "moderation_note"}
+            if protected_fields.intersection(request.data.keys()):
+                return success_response(
+                    message="Staff users cannot change project moderation controls.",
+                    data={},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
 
         partial = kwargs.pop("partial", False)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -480,4 +498,109 @@ class MyProjectInterestsView(generics.ListAPIView):
         return success_response(
             message="My project interests fetched successfully.",
             data=serializer.data,
+        )
+
+
+class ProjectReportListCreateView(generics.ListCreateAPIView):
+    queryset = ProjectReport.objects.select_related("project", "reported_by", "project__created_by")
+    serializer_class = ProjectReportSerializer
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated()]
+        return [IsAdminUserRole()]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        project_id = self.request.query_params.get("project")
+        status_filter = self.request.query_params.get("status")
+
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return success_response(
+            message="Project reports fetched successfully.",
+            data=serializer.data,
+        )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save(reported_by=request.user)
+
+        project = report.project
+        if project.moderation_status == Project.MODERATION_CLEAR:
+            project.moderation_status = Project.MODERATION_UNDER_REVIEW
+            project.moderation_note = "Project flagged for admin review after user report."
+            project.save(update_fields=["moderation_status", "moderation_note", "updated_at"])
+
+        return success_response(
+            message="Project report submitted successfully.",
+            data=self.get_serializer(report).data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class ProjectCashoutListCreateView(generics.ListCreateAPIView):
+    queryset = ProjectCashout.objects.select_related("project", "requested_by", "project__created_by")
+    serializer_class = ProjectCashoutSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        project_id = self.request.query_params.get("project")
+
+        if user.role == "admin":
+            filtered = queryset
+        elif user.role == "staff":
+            filtered = queryset.filter(project__created_by=user)
+        else:
+            return queryset.none()
+
+        if project_id:
+            filtered = filtered.filter(project_id=project_id)
+        return filtered
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return success_response(
+            message="Project cashouts fetched successfully.",
+            data=serializer.data,
+        )
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ["admin", "staff"]:
+            return success_response(
+                message="You do not have permission to record a cashout.",
+                data={},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = self.get_serializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        cashout = serializer.save(
+            requested_by=request.user,
+            remaining_balance=serializer.validated_data["project"].available_balance() - serializer.validated_data["amount"],
+        )
+
+        ProjectUpdate.objects.create(
+            project=cashout.project,
+            title=f"Project cashout recorded - {cashout.amount}",
+            description=cashout.purpose,
+            update_type=ProjectUpdate.TYPE_CASHOUT,
+            cashout_amount=cashout.amount,
+            remaining_balance=cashout.remaining_balance,
+            created_by=request.user,
+        )
+
+        return success_response(
+            message="Project cashout recorded successfully.",
+            data=self.get_serializer(cashout).data,
+            status_code=status.HTTP_201_CREATED,
         )
