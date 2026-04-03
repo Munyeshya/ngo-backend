@@ -1,11 +1,12 @@
 from rest_framework import generics, permissions
-from .models import User
+from .models import User, StaffApplication
 from .serializers import *
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import PermissionDenied
 from .permissions import IsAdminUserRole, IsAdminOrSelf
 from core.views import success_response
 from rest_framework import generics, permissions, status
@@ -56,12 +57,16 @@ from .serializers import (
     SelfUserUpdateSerializer,
     DonorClaimRequestSerializer,
     DonorClaimVerifySerializer,
+    StaffApplicationSerializer,
+    StaffApplicationReviewSerializer,
 )
 from .utils import (
     issue_donor_claim_token,
     send_donor_claim_email,
     send_donor_claim_success_email,
     send_staff_application_received_email,
+    send_staff_application_submitted_email,
+    send_staff_application_review_email,
     send_staff_status_email,
 )
 
@@ -168,6 +173,96 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
         return success_response(
             message="User updated successfully.",
             data=serializer.data,
+        )
+
+
+class MyStaffApplicationView(generics.RetrieveUpdateAPIView):
+    serializer_class = StaffApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        if user.role != User.ROLE_STAFF:
+            raise PermissionDenied("Only staff users can manage staff applications.")
+        application, _ = StaffApplication.objects.get_or_create(user=user)
+        return application
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return success_response(
+            message="Staff application fetched successfully.",
+            data=serializer.data,
+        )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        previous_status = instance.status
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        instance.refresh_from_db()
+        if instance.status == StaffApplication.STATUS_UNDER_REVIEW and previous_status != StaffApplication.STATUS_UNDER_REVIEW:
+            send_staff_application_submitted_email(instance)
+
+        return success_response(
+            message="Staff application updated successfully.",
+            data=self.get_serializer(instance).data,
+        )
+
+
+class StaffApplicationListView(generics.ListAPIView):
+    queryset = StaffApplication.objects.select_related("user", "reviewed_by").order_by("-updated_at")
+    serializer_class = StaffApplicationSerializer
+    permission_classes = [IsAdminUserRole]
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return success_response(
+            message="Staff applications fetched successfully.",
+            data=serializer.data,
+        )
+
+
+class StaffApplicationReviewView(generics.RetrieveUpdateAPIView):
+    queryset = StaffApplication.objects.select_related("user", "reviewed_by")
+    serializer_class = StaffApplicationReviewSerializer
+    permission_classes = [IsAdminUserRole]
+
+    def get_serializer_class(self):
+        if self.request.method in ["PUT", "PATCH"]:
+            return StaffApplicationReviewSerializer
+        return StaffApplicationSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return success_response(
+            message="Staff application fetched successfully.",
+            data=serializer.data,
+        )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        instance.reviewed_by = request.user
+        instance.save(update_fields=["reviewed_by"])
+
+        if instance.status == StaffApplication.STATUS_APPROVED:
+            user = instance.user
+            user.is_verified = True
+            user.save(update_fields=["is_verified"])
+            send_staff_status_email(user)
+        else:
+            send_staff_application_review_email(instance)
+
+        return success_response(
+            message="Staff application reviewed successfully.",
+            data=StaffApplicationSerializer(instance).data,
         )
 
 class DonorClaimRequestView(generics.GenericAPIView):
